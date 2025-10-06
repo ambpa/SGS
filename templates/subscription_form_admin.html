@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Aggiungi Abbonamento | SuperGym{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="mb-4">💳 Aggiungi Abbonamento a un Socio</h1>
+
+    <form method="post">
+        {% csrf_token %}
+
+        <!-- Selezione socio -->
+        <div class="mb-3">
+            <label for="member" class="form-label">Seleziona Socio</label>
+            <select name="member" id="member" class="form-select" required>
+                <option value="">-- Seleziona un socio --</option>
+                {% for m in members %}
+                    <option value="{{ m.id }}">{{ m.last_name }} {{ m.first_name }} ({{ m.username }})</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Dati abbonamento -->
+        {{ form.as_p }}
+
+        <button type="submit" class="btn btn-success">💾 Salva</button>
+        <a href="{% url 'dashboard' %}" class="btn btn-secondary">⬅ Torna alla Dashboard</a>
+    </form>
+</div>
+{% endblock %}

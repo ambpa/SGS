@@ -74,6 +74,15 @@ class MemberDocumentForm(forms.ModelForm):
             'expiration_date': forms.DateInput(attrs={'type': 'date'}),
         }
 
+
+class AdminMemberDocumentForm(forms.ModelForm):
+    class Meta:
+        model = MemberDocument
+        fields = ['member', 'document_type', 'file', 'expiration_date', 'is_active', 'description']
+        widgets = {
+            'expiration_date': forms.DateInput(attrs={'type': 'date'}),
+        }
+
 # Formset per più documenti
 MemberDocumentFormSet = modelformset_factory(
     MemberDocument,

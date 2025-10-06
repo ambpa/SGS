@@ -43,7 +43,28 @@
             </div>
         </div>
         </div>
+
+        <div class="col-md-4 col-sm-6 mb-3">
+            <div class="card text-white bg-secondary h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Certificati Scaduti</h5>
+                    <p class="card-text fs-3">{{ expired_certificates }}</p>
+                    <a href="{% url 'members:medical_certificate_status' %}?status=Scaduto" class="btn btn-light btn-sm mt-2">Vedi Scaduti</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 col-sm-6 mb-3">
+            <div class="card text-white bg-dark h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Abbonamenti Scaduti</h5>
+                    <p class="card-text fs-3">{{ expired_subscriptions }}</p>
+                    <a href="{% url 'members:subscription_status' %}?status=Scaduto" class="btn btn-light btn-sm mt-2">Vedi Scaduti</a>
+                </div>
+            </div>
+        </div>
     </div>
+
 
 
 

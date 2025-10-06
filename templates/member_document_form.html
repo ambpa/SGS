@@ -4,15 +4,23 @@
 {% block content %}
 <div class="container mt-5">
     <h1 class="mb-4">
-        {% if document %} Modifica Documento {% else %} Aggiungi Documento {% endif %}
-        per {{ member }}
+        {% if document %}
+            Modifica Documento per {{ member }}
+        {% elif member %}
+            Aggiungi Documento per {{ member }}
+        {% else %}
+            Aggiungi Documento a un Socio
+        {% endif %}
     </h1>
+
 
     <form method="post" enctype="multipart/form-data">
         {% csrf_token %}
         {{ form.as_p }}
         <button type="submit" class="btn btn-success">💾 Salva</button>
-        <a href="{% url 'members:edit_member' member.id %}" class="btn btn-secondary">⬅ Torna al Socio</a>
+        {% if member %}
+            <a href="{% url 'members:edit_member' member.id %}" class="btn btn-secondary">⬅ Torna al Socio</a>
+        {% endif %}
     </form>
 </div>
 {% endblock %}

@@ -5,14 +5,25 @@
     <meta charset="UTF-8">
     <title>{% block title %}SuperGym{% endblock %}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Bootstrap & Font -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="{% static 'css/style.css' %}" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="{% static '/css/style.css' %}" rel="stylesheet">
+
+    <style>
+
+    </style>
 </head>
-<body class="bg-light">
+
+<body>
 
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="{% url 'dashboard' %}">🏋️ SuperGym</a>
+    <div class="container-fluid px-4">
+        <a class="navbar-brand d-flex align-items-center" href="{% url 'dashboard' %}">
+            🏋️‍♂️ <span class="ms-2">SuperGym</span>
+        </a>
+
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent"
                 aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
@@ -20,62 +31,73 @@
 
         <div class="collapse navbar-collapse" id="navbarContent">
             {% if user.is_authenticated %}
+            <!-- Menu principale -->
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-
-                <!-- 🔹 Sezione Soci -->
+                <!-- 🔹 Soci -->
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="membersDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                         👥 Soci
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="membersDropdown">
                         <li><a class="dropdown-item" href="{% url 'dashboard' %}">Lista Soci</a></li>
-                        <li><a class="dropdown-item" href="{% url 'members:add_member' %}">Aggiungi Socio</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="{% url 'members:profile' %}">Profilo</a></li>
-                        <li><a class="dropdown-item" href="{% url 'members:change_own_password' %}">Cambia Password</a></li>
+                        <li><a class="dropdown-item" href="{% url 'members:add_member' %}">➕ Aggiungi Socio</a></li>
+
+
                     </ul>
                 </li>
 
-                <!-- 🔹 Sezione Documenti -->
+                <!-- 🔹 Documenti -->
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="docsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                         📄 Documenti
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="docsDropdown">
                         <li><a class="dropdown-item" href="{% url 'members:medical_certificate_status' %}">Certificati Medici</a></li>
-                        <li><a class="dropdown-item" href="{% url 'members:add_member_document' member_id=1 %}">Aggiungi Documento (esempio)</a></li>
-                    </ul>
+                        {% if user.is_superuser %}
+                            <li><hr class="dropdown-divider"></li>
+                           <li><a  class="dropdown-item text-primary" href="{% url 'members:add_document_admin' %}">➕ Aggiungi Documento</a></li>
+
+                        {% endif %}                    </ul>
                 </li>
 
-                <!-- 🔹 Sezione Abbonamenti -->
+                <!-- 🔹 Abbonamenti -->
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="subsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                         💳 Abbonamenti
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="subsDropdown">
                         <li><a class="dropdown-item" href="{% url 'members:subscription_status' %}">Stato Abbonamenti</a></li>
-                        <li><a class="dropdown-item" href="{% url 'members:add_subscription' member_id=1 %}">Aggiungi Abbonamento (esempio)</a></li>
+                        {% if user.is_staff %}
+                            <li><a class="dropdown-item" href="{% url 'members:add_subscription_admin' %}">➕ Aggiungi Abbonamento</a></li>
+                        {% endif %}
                     </ul>
                 </li>
+            </ul>
 
-                <!-- 🔹 Sezione Sistema -->
+            <!-- Menu utente -->
+            <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-center">
+                <li class="nav-item me-2 text-white small">
+                    👋 Ciao, {{ user.first_name|default:user.username }}
+                </li>
+
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="systemDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        ⚙️ Sistema
+                        ⚙️
                     </a>
-                    <ul class="dropdown-menu" aria-labelledby="systemDropdown">
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="systemDropdown">
+                        <li><a class="dropdown-item" href="{% url 'members:profile' %}">👤 Profilo</a></li>
+                        <li><a class="dropdown-item" href="{% url 'members:change_own_password' %}">🔐 Cambia Password</a></li>
+                        <li><hr class="dropdown-divider"></li>
                         <li>
                             <form method="post" action="{% url 'logout' %}" class="d-inline">
                                 {% csrf_token %}
-                                <button type="submit" class="dropdown-item text-danger">Logout</button>
+                                <button type="submit" class="dropdown-item text-danger">🚪 Logout</button>
                             </form>
                         </li>
                     </ul>
                 </li>
-
             </ul>
             {% else %}
-            <!-- 🔹 Menu per utenti non autenticati -->
             <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
                 <li class="nav-item">
                     <a class="nav-link" href="{% url 'login' %}">Login</a>
@@ -86,9 +108,13 @@
     </div>
 </nav>
 
-<div class="container mt-4">
+<main class="container main-container">
     {% block content %}{% endblock %}
-</div>
+</main>
+
+<footer>
+    © {{ now|date:"Y" }} SuperGym — Tutti i diritti riservati
+</footer>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="{% static 'js/script.js' %}"></script>

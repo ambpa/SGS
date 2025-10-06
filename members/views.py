@@ -1,9 +1,9 @@
 # members/views.py
-from django.shortcuts import render, get_object_or_404, redirect
+from django.shortcuts import  get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.contrib import messages
-from .models import Member, MemberDocument
+from .models import MemberDocument
 from .forms import MemberCreationForm, MemberDocumentForm
 from .forms import MemberChangeForm, MemberDocumentFormSet
 
@@ -13,11 +13,12 @@ from django.core.paginator import Paginator
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth import update_session_auth_hash
 
-from .models import Member, Subscription
+from .models import Subscription
 from .forms import SubscriptionForm
 
+from django.contrib.admin.views.decorators import staff_member_required
+from .forms import AdminMemberDocumentForm
 
-from django.utils import timezone
 
 
 @login_required
@@ -40,24 +41,48 @@ def dashboard(request):
     page_number = request.GET.get('page')
     members = paginator.get_page(page_number)
 
-    # Statistiche
+    # Statistiche generali
     total_members = Member.objects.count()
     active_members = Member.objects.filter(is_active=True).count()
-
-    # Statistiche documenti
     total_documents = MemberDocument.objects.count()
-    today = timezone.now().date()
-    expired_certificates = MemberDocument.objects.filter(
-        document_type='MEDICAL_CERTIFICATE', expiration_date__lt=today
-    ).count()
-    active_certificates = MemberDocument.objects.filter(
-        document_type='MEDICAL_CERTIFICATE', expiration_date__gte=today
-    ).count()
 
-    # Statistiche abbonamenti
+    # Statistiche certificati considerando solo l'ultimo per socio
+    today = timezone.now().date()
+    expired_certificates = 0
+    active_certificates = 0
+
+    for member in Member.objects.all():
+        latest_cert = member.documents.filter(document_type='MEDICAL_CERTIFICATE').order_by('-expiration_date').first()
+        if latest_cert:
+            if latest_cert.expiration_date and latest_cert.expiration_date < today:
+                expired_certificates += 1
+            else:
+                active_certificates += 1
+
+    # Statistiche abbonamenti considerando solo l'ultimo per categoria per socio
+    from collections import defaultdict
+    member_categories = defaultdict(dict)
+    active_subscriptions = 0
+    expired_subscriptions = 0
+
+    for sub in Subscription.objects.select_related('member').all():
+        member_id = sub.member.id
+        category = sub.category
+        # tieni solo l'abbonamento con la data di fine maggiore per ogni socio/categoria
+        if category not in member_categories[member_id] or sub.end_date > member_categories[member_id][category].end_date:
+            member_categories[member_id][category] = sub
+
+    # Conta abbonamenti attivi e scaduti
+    for member_subs in member_categories.values():
+        for sub in member_subs.values():
+            if sub.start_date > today:
+                continue  # non ancora attivo
+            elif sub.end_date < today:
+                expired_subscriptions += 1
+            else:
+                active_subscriptions += 1
+
     total_subscriptions = Subscription.objects.count()
-    active_subscriptions = sum(1 for s in Subscription.objects.all() if s.status == "Attivo")
-    expired_subscriptions = sum(1 for s in Subscription.objects.all() if s.status == "Scaduto")
 
     context = {
         'members': members,
@@ -73,6 +98,8 @@ def dashboard(request):
     }
 
     return render(request, 'dashboard.html', context)
+
+
 
 
 
@@ -129,7 +156,7 @@ def add_member(request):
     DocumentFormSet = modelformset_factory(
         MemberDocument,
         form=MemberDocumentForm,
-        extra=3,      # numero di documenti vuoti visualizzati
+        extra=1,      # numero di documenti vuoti visualizzati
         can_delete=True
     )
 
@@ -253,6 +280,30 @@ def delete_member_document(request, document_id):
 from django.shortcuts import render
 from django.utils import timezone
 from .models import Member
+
+
+@login_required
+@staff_member_required
+def add_document_admin(request):
+    """
+    Permette solo all'amministratore di aggiungere un documento
+    scegliendo a quale socio associarlo.
+    """
+    if request.method == 'POST':
+        form = AdminMemberDocumentForm(request.POST, request.FILES)
+        if form.is_valid():
+            document = form.save()
+            messages.success(request, f"Documento aggiunto correttamente a {document.member}.")
+            return redirect('members:edit_member', member_id=document.member.id)
+    else:
+        form = AdminMemberDocumentForm()
+
+    context = {
+        'form': form,
+        'title': "Aggiungi documento a socio"
+    }
+    return render(request, 'member_document_form.html', context)
+
 
 
 def medical_certificate_status(request):
@@ -388,3 +439,32 @@ def subscription_status(request):
         'subscriptions_status': subscriptions_status
     }
     return render(request, 'subscription_status.html', context)
+
+@login_required
+@staff_member_required
+def add_subscription_admin(request):
+    """Permette all'admin di scegliere il socio a cui associare un nuovo abbonamento."""
+    from .forms import SubscriptionForm
+    from .models import Member, Subscription
+
+    if request.method == "POST":
+        form = SubscriptionForm(request.POST)
+        selected_member_id = request.POST.get("member")
+
+        if form.is_valid() and selected_member_id:
+            member = get_object_or_404(Member, id=selected_member_id)
+            subscription = form.save(commit=False)
+            subscription.member = member
+            subscription.save()
+            messages.success(request, f"Abbonamento aggiunto con successo per {member}.")
+            return redirect("dashboard")
+    else:
+        form = SubscriptionForm()
+
+    members = Member.objects.all().order_by("last_name", "first_name")
+
+    context = {
+        "form": form,
+        "members": members,
+    }
+    return render(request, "subscription_form_admin.html", context)

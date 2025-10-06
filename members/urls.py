@@ -21,5 +21,8 @@ urlpatterns = [
     path("subscriptions/<int:member_id>/add/", views.add_subscription, name="add_subscription"),
     path('subscriptions/', views.subscription_status, name='subscription_status'),
 
+    #Chiamate per admin
+    path('add-document/', views.add_document_admin, name='add_document_admin'),
+    path('add-subscription/', views.add_subscription_admin, name='add_subscription_admin'),
 
 ]
