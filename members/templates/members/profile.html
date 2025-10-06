@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% block title %}Profilo | SuperGym{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="mb-4">Il Mio Profilo</h1>
+
+    <div class="row">
+        <!-- Sezione informazioni personali -->
+        <div class="col-md-6 col-sm-12 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h4 class="mb-3">Dati Personali</h4>
+                    <p><strong>Username:</strong> {{ user.username }}</p>
+                    <p><strong>Nome:</strong> {{ user.first_name }} {{ user.last_name }}</p>
+                    <p><strong>Email:</strong> {{ user.email }}</p>
+                    <p><strong>Data di nascita:</strong> {{ user.date_of_birth|default:"-" }}</p>
+                    <p><strong>Telefono:</strong> {{ user.phone_number|default:"-" }}</p>
+                    <p><strong>Indirizzo:</strong> {{ user.address|default:"-" }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sezione cambio password -->
+        <div class="col-md-6 col-sm-12 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h4 class="mb-3">Cambia Password</h4>
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <form method="post">
+                        {% csrf_token %}
+                        {{ password_form|crispy }}
+
+                        <button type="submit" class="btn btn-primary w-100 mt-3">
+                            Aggiorna Password
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sezione subscriptions -->
+        <div class="row">
+            <div class="col-12 mb-4">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h4 class="mb-3">I Miei Abbonamenti</h4>
+                        <div class="table-responsive">
+                            <table class="table table-striped align-middle">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Tipologia</th>
+                                        <th>Categoria</th>
+                                        <th>Data Inizio</th>
+                                        <th>Data Fine</th>
+                                        <th>Stato</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in subscriptions_list %}
+                                        <tr>
+                                            <td>{{ forloop.counter }}</td>
+                                            <td>{{ item.subscription.get_subscription_type_display }}</td>
+                                            <td>{{ item.subscription.get_category_display }}</td>
+                                            <td>{{ item.subscription.start_date }}</td>
+                                            <td>{{ item.subscription.end_date }}</td>
+                                            <td>
+                                                {% if item.status == "Attivo" %}
+                                                    <span class="badge bg-success">{{ item.status }}</span>
+                                                {% elif item.status == "Scaduto" %}
+                                                    <span class="badge bg-danger">{{ item.status }}</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">{{ item.status }}</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                            <p>Nessun abbonamento attivo.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+    </div>
+</div>
+{% endblock %}

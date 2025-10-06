@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}SuperGym{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="{% static 'css/style.css' %}" rel="stylesheet">
+</head>
+<body class="bg-light">
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="{% url 'dashboard' %}">🏋️ SuperGym</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent"
+                aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navbarContent">
+            {% if user.is_authenticated %}
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+
+                <!-- 🔹 Sezione Soci -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="membersDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        👥 Soci
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="membersDropdown">
+                        <li><a class="dropdown-item" href="{% url 'dashboard' %}">Lista Soci</a></li>
+                        <li><a class="dropdown-item" href="{% url 'members:add_member' %}">Aggiungi Socio</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'members:profile' %}">Profilo</a></li>
+                        <li><a class="dropdown-item" href="{% url 'members:change_own_password' %}">Cambia Password</a></li>
+                    </ul>
+                </li>
+
+                <!-- 🔹 Sezione Documenti -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="docsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        📄 Documenti
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="docsDropdown">
+                        <li><a class="dropdown-item" href="{% url 'members:medical_certificate_status' %}">Certificati Medici</a></li>
+                        <li><a class="dropdown-item" href="{% url 'members:add_member_document' member_id=1 %}">Aggiungi Documento (esempio)</a></li>
+                    </ul>
+                </li>
+
+                <!-- 🔹 Sezione Abbonamenti -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="subsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        💳 Abbonamenti
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="subsDropdown">
+                        <li><a class="dropdown-item" href="{% url 'members:subscription_status' %}">Stato Abbonamenti</a></li>
+                        <li><a class="dropdown-item" href="{% url 'members:add_subscription' member_id=1 %}">Aggiungi Abbonamento (esempio)</a></li>
+                    </ul>
+                </li>
+
+                <!-- 🔹 Sezione Sistema -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="systemDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        ⚙️ Sistema
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="systemDropdown">
+                        <li>
+                            <form method="post" action="{% url 'logout' %}" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="dropdown-item text-danger">Logout</button>
+                            </form>
+                        </li>
+                    </ul>
+                </li>
+
+            </ul>
+            {% else %}
+            <!-- 🔹 Menu per utenti non autenticati -->
+            <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'login' %}">Login</a>
+                </li>
+            </ul>
+            {% endif %}
+        </div>
+    </div>
+</nav>
+
+<div class="container mt-4">
+    {% block content %}{% endblock %}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{% static 'js/script.js' %}"></script>
+</body>
+</html>

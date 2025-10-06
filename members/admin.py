@@ -4,6 +4,7 @@ from django.contrib.auth.admin import UserAdmin
 from .models import Member, MemberDocument
 # Importiamo i nostri nuovi form personalizzati
 from .forms import MemberCreationForm, MemberChangeForm
+from .models import Subscription  # Assumendo che Subscription sia nel file models.py
 
 
 class MemberDocumentInline(admin.TabularInline):
@@ -60,3 +61,33 @@ class MemberDocumentAdmin(admin.ModelAdmin):
     search_fields = ('member__first_name', 'member__last_name', 'description')
     autocomplete_fields = ['member']
     list_editable = ('is_active',)
+
+@admin.register(Subscription)
+class SubscriptionAdmin(admin.ModelAdmin):
+    list_display = ('member', 'subscription_type', 'category', 'start_date', 'end_date', 'status_badge')
+    list_filter = ('subscription_type', 'category')
+    search_fields = ('member__first_name', 'member__last_name', 'member__email')
+
+    # Mostra lo stato con badge colorato
+    def status_badge(self, obj):
+        from django.utils.html import format_html
+        from django.utils import timezone
+        today = timezone.now().date()
+
+        if obj.start_date > today:
+            color = 'secondary'
+            status = 'Non ancora attivo'
+        elif obj.end_date and obj.end_date < today:
+            color = 'danger'
+            status = 'Scaduto'
+        else:
+            color = 'success'
+            status = 'Attivo'
+
+        return format_html(
+            '<span class="badge bg-{}">{}</span>',
+            color,
+            status
+        )
+
+    status_badge.short_description = 'Stato'

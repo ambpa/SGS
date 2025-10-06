@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Stato Certificato Medico | SuperGym{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="mb-4">Stato Certificato Medico Soci</h1>
+
+    <!-- Filtro ricerca soci e stato certificato -->
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <form method="get" class="d-flex">
+                <input type="text" name="q" class="form-control me-2" placeholder="Cerca socio..." value="{{ request.GET.q }}">
+
+                <select name="status" class="form-select me-2">
+                    <option value="">Tutti gli stati</option>
+                    <option value="Attivo" {% if request.GET.status == "Attivo" %}selected{% endif %}>Attivo</option>
+                    <option value="Scaduto" {% if request.GET.status == "Scaduto" %}selected{% endif %}>Scaduto</option>
+                    <option value="Assente" {% if request.GET.status == "Assente" %}selected{% endif %}>Assente</option>
+                </select>
+
+                <button type="submit" class="btn btn-primary">Filtra</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabella stato certificato medico -->
+    <div class="row">
+        <div class="col-12">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover align-middle">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>#</th>
+                            <th>Nome</th>
+                            <th>Email</th>
+                            <th>Data di nascita</th>
+                            <th>Telefono</th>
+                            <th>Certificato Medico</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in members_status %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>{{ item.member.first_name }} {{ item.member.last_name }}</td>
+                            <td>{{ item.member.email }}</td>
+                            <td>{{ item.member.date_of_birth|default:"-" }}</td>
+                            <td>{{ item.member.phone_number|default:"-" }}</td>
+                            <td>
+                                {% if item.document %}
+                                    {% if item.cert_status == "Attivo" %}
+                                        <span class="badge rounded-circle bg-success" style="width:15px; height:15px; display:inline-block;"></span>
+                                    {% elif item.cert_status == "Scaduto" %}
+                                        <span class="badge rounded-circle bg-warning" style="width:15px; height:15px; display:inline-block;"></span>
+                                    {% else %}
+                                        <span class="badge rounded-circle bg-secondary" style="width:15px; height:15px; display:inline-block;"></span>
+                                    {% endif %}
+                                    {{ item.cert_status }} -
+                                    <a href="{{ item.document.file.url }}" target="_blank">Visualizza</a>
+                                    <a href="{% url 'members:edit_member_document' item.document.id %}">Dettagli</a>
+
+                                {% else %}
+                                    <span class="badge rounded-circle bg-danger" style="width:15px; height:15px; display:inline-block;"></span>
+                                    Assente
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center">Nessun socio trovato.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

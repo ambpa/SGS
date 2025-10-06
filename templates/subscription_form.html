@@ -1,0 +1,16 @@
+<!-- templates/subscription_form.html -->
+{% extends "base.html" %}
+{% block title %}Aggiungi Abbonamento | SuperGym{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1>Aggiungi abbonamento per {{ member.first_name }} {{ member.last_name }}</h1>
+
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-success">Salva</button>
+        <a href="{% url 'members:subscription_list' member.id %}" class="btn btn-secondary">Annulla</a>
+    </form>
+</div>
+{% endblock %}

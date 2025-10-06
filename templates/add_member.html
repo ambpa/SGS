@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% block title %}Aggiungi Socio | SuperGym{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="mb-4">Aggiungi Nuovo Socio con Documenti</h1>
+
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-sm-12">
+            <div class="card shadow-sm">
+                <div class="card-body">
+
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+
+                        <!-- Sezione dati socio -->
+                        <h4 class="mb-3">Dati Socio</h4>
+                        {{ member_form|crispy }}
+
+                        <hr>
+
+                        <!-- Sezione documenti -->
+                        <h4 class="mb-3">Documenti Socio</h4>
+                        {{ document_formset.management_form }}
+                        {% for form in document_formset %}
+                            <div class="mb-3 border p-3 rounded">
+                                {{ form|crispy }}
+                            </div>
+                        {% endfor %}
+
+                        <button type="submit" class="btn btn-primary w-100 mt-3">
+                            Crea Socio e Documenti
+                        </button>
+                    </form>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

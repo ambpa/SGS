@@ -2,7 +2,8 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-
+import os
+from django.utils import timezone
 
 def member_document_upload_path(instance, filename):
     """
@@ -101,5 +102,54 @@ class MemberDocument(models.Model):
     def __str__(self):
         return f"Documento '{self.get_document_type_display()}' per {self.member}"
 
+    @property
+    def filename(self):
+        return os.path.basename(self.file.name)
 
 
+
+
+
+class Subscription(models.Model):
+    class SubscriptionType(models.TextChoices):
+        ANNUAL = 'ANNUAL', _('Annuale')
+        SEMESTRAL = 'SEMESTRAL', _('Semestrale')
+        MONTHLY = 'MONTHLY', _('Mensile')
+
+    class Category(models.TextChoices):
+        GYM = 'GYM', _('Palestra')
+        COURSE_A = 'COURSE_A', _('Corso A')
+        KARATE = 'KARATE', _('Karate')
+    member = models.ForeignKey(Member, on_delete=models.CASCADE, related_name="subscriptions")
+
+
+    subscription_type = models.CharField(
+        max_length=20,
+        choices=SubscriptionType.choices,
+        verbose_name=_("Tipologia abbonamento")
+    )
+    category = models.CharField(
+        max_length=20,
+        choices=Category.choices,
+        verbose_name=_("Categoria")
+    )
+    start_date = models.DateField(verbose_name=_("Data inizio"))
+    end_date = models.DateField(verbose_name=_("Data fine"))
+
+    class Meta:
+        verbose_name = _("Abbonamento")
+        verbose_name_plural = _("Abbonamenti")
+        ordering = ['-end_date']
+
+    def __str__(self):
+        return f"{self.get_subscription_type_display()} - {self.get_category_display()} per {self.member}"
+
+    @property
+    def status(self):
+        today = timezone.now().date()
+        if self.end_date < today:
+            return "Scaduto"
+        elif self.start_date > today:
+            return "Non ancora attivo"
+        else:
+            return "Attivo"
