@@ -5,6 +5,8 @@ from .models import Member, MemberDocument
 from django.forms import modelformset_factory
 from django import forms
 from .models import Subscription
+from datetime import date
+
 
 class MemberCreationForm(UserCreationForm):
     """
@@ -69,26 +71,36 @@ class MemberChangeForm(UserChangeForm):
 class MemberDocumentForm(forms.ModelForm):
     class Meta:
         model = MemberDocument
-        fields = ['document_type', 'file', 'expiration_date', 'is_active', 'description']
+        fields = ['document_type', 'file', 'expiration_date', 'description']
         widgets = {
-            'expiration_date': forms.DateInput(attrs={'type': 'date'}),
+            'expiration_date': forms.DateInput(
+                attrs={
+                    'type': 'date',
+                    'min': date.today().strftime('%Y-%m-%d')  # Imposta oggi come minimo
+                }
+            ),
         }
 
 
 class AdminMemberDocumentForm(forms.ModelForm):
     class Meta:
         model = MemberDocument
-        fields = ['member', 'document_type', 'file', 'expiration_date', 'is_active', 'description']
+        fields = ['member', 'document_type', 'file', 'expiration_date', 'description']
         widgets = {
-            'expiration_date': forms.DateInput(attrs={'type': 'date'}),
+            'expiration_date': forms.DateInput(
+                attrs={
+                    'type': 'date',
+                    'min': date.today().strftime('%Y-%m-%d')  # Imposta oggi come minimo
+                }
+            ),
         }
 
 # Formset per più documenti
 MemberDocumentFormSet = modelformset_factory(
     MemberDocument,
     form=MemberDocumentForm,
-    extra=0,  # default, puoi cambiare quanti documenti visualizzare
-    can_delete=True
+    #extra=0,  # default, puoi cambiare quanti documenti visualizzare
+    #can_delete=True
 )
 
 
@@ -96,9 +108,8 @@ MemberDocumentFormSet = modelformset_factory(
 class SubscriptionForm(forms.ModelForm):
     class Meta:
         model = Subscription
-        fields = ['subscription_type', 'category', 'start_date', 'end_date']
+        fields = ['subscription_type', 'category', 'start_date',]
         widgets = {
             'start_date': forms.DateInput(attrs={'type': 'date'}),
-            'end_date': forms.DateInput(attrs={'type': 'date'}),
         }
 

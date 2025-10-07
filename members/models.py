@@ -1,9 +1,10 @@
-# members/models.py
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-import os
 from django.utils import timezone
+from dateutil.relativedelta import relativedelta
+import os
+
 
 def member_document_upload_path(instance, filename):
     """
@@ -17,27 +18,13 @@ class Member(AbstractUser):
     """
     Modello utente personalizzato per il socio della palestra.
     """
-    # Rendiamo questi campi obbligatori (blank=False)
-    first_name = models.CharField(_("first name"), max_length=150, blank=False)
-    last_name = models.CharField(_("last name"), max_length=150, blank=False)
-    email = models.EmailField(_("email address"), blank=False)
+    first_name = models.CharField(_("Nome"), max_length=150, blank=False)
+    last_name = models.CharField(_("Cognome"), max_length=150, blank=False)
+    email = models.EmailField(_("Email"), blank=False)
 
-    # Campi anagrafici aggiuntivi
-    date_of_birth = models.DateField(
-        verbose_name=_("Data di nascita"),
-        null=True,
-        blank=True
-    )
-    phone_number = models.CharField(
-        verbose_name=_("Numero di telefono"),
-        max_length=20,
-        blank=True
-    )
-    address = models.CharField(
-        verbose_name=_("Indirizzo"),
-        max_length=255,
-        blank=True
-    )
+    date_of_birth = models.DateField(_("Data di nascita"), null=True, blank=True)
+    phone_number = models.CharField(_("Numero di telefono"), max_length=20, blank=True)
+    address = models.CharField(_("Indirizzo"), max_length=255, blank=True)
 
     class Meta:
         verbose_name = _("Socio")
@@ -45,7 +32,6 @@ class Member(AbstractUser):
         ordering = ['last_name', 'first_name']
 
     def __str__(self):
-        # Se nome e cognome esistono, mostra quelli, altrimenti lo username.
         if self.first_name and self.last_name:
             return f"{self.first_name} {self.last_name}"
         return self.username
@@ -58,7 +44,7 @@ class MemberDocument(models.Model):
 
     class DocumentType(models.TextChoices):
         MEDICAL_CERTIFICATE = 'MEDICAL_CERTIFICATE', _('Certificato Medico')
-        IDENTITY_CARD = 'IDENTITY_CARD', _('Carta d\'Identità')
+        IDENTITY_CARD = 'IDENTITY_CARD', _("Carta d'Identità")
         CONTRACT = 'CONTRACT', _('Contratto')
         OTHER = 'OTHER', _('Altro')
 
@@ -78,21 +64,10 @@ class MemberDocument(models.Model):
         upload_to=member_document_upload_path,
         verbose_name=_("File")
     )
-    # NUOVI CAMPI AGGIUNTI QUI
-    expiration_date = models.DateField(
-        verbose_name=_("Data di Scadenza"),
-        null=True,
-        blank=True
-    )
-    is_active = models.BooleanField(
-        default=True,
-        verbose_name=_("Attivo")
-    )
+    expiration_date = models.DateField(_("Data di Scadenza"), null=True, blank=True)
+    is_active = models.BooleanField(default=True, verbose_name=_("Attivo"))
     description = models.TextField(verbose_name=_("Descrizione"), blank=True)
-    uploaded_at = models.DateTimeField(
-        auto_now_add=True,
-        verbose_name=_("Data di caricamento")
-    )
+    uploaded_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Data di caricamento"))
 
     class Meta:
         verbose_name = _("Documento Socio")
@@ -107,21 +82,28 @@ class MemberDocument(models.Model):
         return os.path.basename(self.file.name)
 
 
-
-
-
 class Subscription(models.Model):
+    """
+    Modello per la gestione degli abbonamenti dei soci.
+    La data di fine viene calcolata automaticamente in base alla tipologia e alla data di inizio.
+    """
+
     class SubscriptionType(models.TextChoices):
-        ANNUAL = 'ANNUAL', _('Annuale')
-        SEMESTRAL = 'SEMESTRAL', _('Semestrale')
         MONTHLY = 'MONTHLY', _('Mensile')
+        SEMESTRAL = 'SEMESTRAL', _('Semestrale')
+        ANNUAL = 'ANNUAL', _('Annuale')
 
     class Category(models.TextChoices):
         GYM = 'GYM', _('Palestra')
         COURSE_A = 'COURSE_A', _('Corso A')
         KARATE = 'KARATE', _('Karate')
-    member = models.ForeignKey(Member, on_delete=models.CASCADE, related_name="subscriptions")
 
+    member = models.ForeignKey(
+        Member,
+        on_delete=models.CASCADE,
+        related_name="subscriptions",
+        verbose_name=_("Socio")
+    )
 
     subscription_type = models.CharField(
         max_length=20,
@@ -134,7 +116,7 @@ class Subscription(models.Model):
         verbose_name=_("Categoria")
     )
     start_date = models.DateField(verbose_name=_("Data inizio"))
-    end_date = models.DateField(verbose_name=_("Data fine"))
+    end_date = models.DateField(verbose_name=_("Data fine"), null=True, blank=True)
 
     class Meta:
         verbose_name = _("Abbonamento")
@@ -147,9 +129,22 @@ class Subscription(models.Model):
     @property
     def status(self):
         today = timezone.now().date()
-        if self.end_date < today:
+        if self.end_date and self.end_date < today:
             return "Scaduto"
         elif self.start_date > today:
             return "Non ancora attivo"
-        else:
-            return "Attivo"
+        return "Attivo"
+
+    def save(self, *args, **kwargs):
+        """
+        Calcola automaticamente la data di fine se non è stata impostata manualmente.
+        """
+        if self.start_date and not self.end_date:
+            if self.subscription_type == self.SubscriptionType.MONTHLY:
+                self.end_date = self.start_date + relativedelta(months=1)
+            elif self.subscription_type == self.SubscriptionType.SEMESTRAL:
+                self.end_date = self.start_date + relativedelta(months=6)
+            elif self.subscription_type == self.SubscriptionType.ANNUAL:
+                self.end_date = self.start_date + relativedelta(years=1)
+
+        super().save(*args, **kwargs)
