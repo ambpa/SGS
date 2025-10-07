@@ -1,11 +1,12 @@
 # members/urls.py
 from django.urls import path
 from . import views
-from django.contrib.auth import views as auth_views
 
 app_name = "members"
 
 urlpatterns = [
+
+
     path('add/', views.add_member, name='add_member'),
     path("edit/<int:member_id>/", views.edit_member, name="edit_member"),
     path("edit/<int:member_id>/add-document/", views.add_member_document, name="add_member_document"),

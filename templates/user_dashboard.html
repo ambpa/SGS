@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Area Utente | SuperGym{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="mb-4">🏋️‍♂️ Benvenuto, {{ member.first_name }}!</h1>
+
+    <div class="card shadow mb-4">
+        <div class="card-body">
+            <h4 class="mb-3">📋 I tuoi abbonamenti attivi</h4>
+            {% if subscriptions %}
+                <table class="table table-striped align-middle">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Categoria</th>
+                            <th>Data Inizio</th>
+                            <th>Data Fine</th>
+                            <th>Stato</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for sub in subscriptions %}
+                        <tr>
+                            <td>{{ sub.category }}</td>
+                            <td>{{ sub.start_date|date:"d/m/Y" }}</td>
+                            <td>{{ sub.end_date|date:"d/m/Y" }}</td>
+                            <td>
+                                {% if sub.end_date >= today %}
+                                    <span class="badge bg-success">Attivo</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Scaduto</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p>Nessun abbonamento registrato.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="text-center">
+        <a href="{% url 'members:profile' %}" class="btn btn-outline-primary">👤 Vai al tuo profilo</a>
+    </div>
+</div>
+{% endblock %}

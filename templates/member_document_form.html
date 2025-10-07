@@ -1,26 +1,57 @@
 {% extends "base.html" %}
 {% block title %}Documento Socio | SuperGym{% endblock %}
 
+{% load widget_tweaks %}
+
 {% block content %}
 <div class="container mt-5">
-    <h1 class="mb-4">
-        {% if document %}
-            Modifica Documento per {{ member }}
-        {% elif member %}
-            Aggiungi Documento per {{ member }}
-        {% else %}
-            Aggiungi Documento a un Socio
-        {% endif %}
-    </h1>
 
-
-    <form method="post" enctype="multipart/form-data">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit" class="btn btn-success">💾 Salva</button>
+    <!-- Titolo pagina -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3">
+            {% if document %}
+                Modifica Documento per {{ member }}
+            {% elif member %}
+                Aggiungi Documento per {{ member }}
+            {% else %}
+                Aggiungi Documento a un Socio
+            {% endif %}
+        </h1>
         {% if member %}
-            <a href="{% url 'members:edit_member' member.id %}" class="btn btn-secondary">⬅ Torna al Socio</a>
+            <a href="{% url 'members:edit_member' member.id %}" class="btn btn-outline-secondary">
+                ⬅ Torna al Socio
+            </a>
         {% endif %}
-    </form>
+    </div>
+
+    <!-- Form Documento -->
+    <div class="card shadow p-4">
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            <div class="row g-3">
+                {% for field in form %}
+                    <div class="col-md-6">
+                        <label class="form-label">{{ field.label }}</label>
+                        {{ field|add_class:"form-control" }}
+                        {% if field.help_text %}
+                            <small class="form-text text-muted">{{ field.help_text }}</small>
+                        {% endif %}
+                        {% for error in field.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+            </div>
+
+            <div class="mt-4 d-flex gap-2">
+                <button type="submit" class="btn btn-success">💾 Salva Documento</button>
+                {% if member %}
+                    <a href="{% url 'members:edit_member' member.id %}" class="btn btn-secondary">❌ Annulla</a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
 </div>
 {% endblock %}

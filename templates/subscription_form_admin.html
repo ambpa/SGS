@@ -1,29 +1,56 @@
 {% extends "base.html" %}
 {% block title %}Aggiungi Abbonamento | SuperGym{% endblock %}
 
+{% load widget_tweaks %}
+
 {% block content %}
 <div class="container mt-5">
-    <h1 class="mb-4">💳 Aggiungi Abbonamento a un Socio</h1>
 
-    <form method="post">
-        {% csrf_token %}
+    <!-- Titolo -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3">💳 Aggiungi Abbonamento a un Socio</h1>
+        <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">⬅ Torna alla Dashboard</a>
+    </div>
 
-        <!-- Selezione socio -->
-        <div class="mb-3">
-            <label for="member" class="form-label">Seleziona Socio</label>
-            <select name="member" id="member" class="form-select" required>
-                <option value="">-- Seleziona un socio --</option>
-                {% for m in members %}
-                    <option value="{{ m.id }}">{{ m.last_name }} {{ m.first_name }} ({{ m.username }})</option>
+    <!-- Form Abbonamento -->
+    <div class="card shadow p-4">
+        <form method="post">
+            {% csrf_token %}
+
+            <!-- Selezione socio -->
+            <div class="mb-3">
+                <label for="member" class="form-label">Seleziona Socio</label>
+                <select name="member" id="member" class="form-select" required>
+                    <option value="">-- Seleziona un socio --</option>
+                    {% for m in members %}
+                        <option value="{{ m.id }}">{{ m.last_name }} {{ m.first_name }} ({{ m.username }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Campi abbonamento -->
+            <div class="row g-3">
+                {% for field in form %}
+                    <div class="col-md-6">
+                        <label class="form-label">{{ field.label }}</label>
+                        {{ field|add_class:"form-control" }}
+                        {% if field.help_text %}
+                            <small class="form-text text-muted">{{ field.help_text }}</small>
+                        {% endif %}
+                        {% for error in field.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                        {% endfor %}
+                    </div>
                 {% endfor %}
-            </select>
-        </div>
+            </div>
 
-        <!-- Dati abbonamento -->
-        {{ form.as_p }}
+            <!-- Bottoni -->
+            <div class="mt-4 d-flex gap-2">
+                <button type="submit" class="btn btn-success">💾 Salva Abbonamento</button>
+                <a href="{% url 'dashboard' %}" class="btn btn-secondary">❌ Annulla</a>
+            </div>
 
-        <button type="submit" class="btn btn-success">💾 Salva</button>
-        <a href="{% url 'dashboard' %}" class="btn btn-secondary">⬅ Torna alla Dashboard</a>
-    </form>
+        </form>
+    </div>
 </div>
 {% endblock %}

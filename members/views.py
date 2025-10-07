@@ -1,7 +1,7 @@
 # members/views.py
 from django.shortcuts import  get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
-from django.db.models import Q
+from django.db.models import Q, Max
 from django.contrib import messages
 from .models import MemberDocument
 from .forms import MemberCreationForm, MemberDocumentForm
@@ -17,90 +17,117 @@ from .models import Subscription
 from .forms import SubscriptionForm
 
 from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib.auth.views import LoginView
+
 from .forms import AdminMemberDocumentForm
+from django.urls import reverse
 
 
 
 @login_required
 def dashboard(request):
-    search_query = request.GET.get('q', '')
 
-    # Recupera tutti i soci filtrando per ricerca
-    members_qs = Member.objects.all()
-    if search_query:
-        members_qs = members_qs.filter(
-            first_name__icontains=search_query
-        ) | members_qs.filter(
-            last_name__icontains=search_query
-        ) | members_qs.filter(
-            email__icontains=search_query
+    user = request.user
+
+    # 🟩 CASO 1: Admin o staff
+    if user.is_staff or user.is_superuser:
+        search_query = request.GET.get('q', '')
+
+        # Recupera tutti i soci filtrando per ricerca
+        members_qs = Member.objects.all()
+        if search_query:
+            members_qs = members_qs.filter(
+                first_name__icontains=search_query
+            ) | members_qs.filter(
+                last_name__icontains=search_query
+            ) | members_qs.filter(
+                email__icontains=search_query
+            )
+
+        # Paginazione (10 per pagina)
+        paginator = Paginator(members_qs.order_by('last_name', 'first_name'), 10)
+        page_number = request.GET.get('page')
+        members = paginator.get_page(page_number)
+
+        # Statistiche generali
+        total_members = Member.objects.count()
+        active_members = Member.objects.filter(is_active=True).count()
+        total_documents = MemberDocument.objects.count()
+
+        # Statistiche certificati considerando solo l'ultimo per socio
+        today = timezone.now().date()
+        expired_certificates = 0
+        active_certificates = 0
+
+        for member in Member.objects.all():
+            latest_cert = member.documents.filter(document_type='MEDICAL_CERTIFICATE').order_by('-expiration_date').first()
+            if latest_cert:
+                if latest_cert.expiration_date and latest_cert.expiration_date < today:
+                    expired_certificates += 1
+                else:
+                    active_certificates += 1
+
+        # Statistiche abbonamenti considerando solo l'ultimo per categoria per socio
+        from collections import defaultdict
+        member_categories = defaultdict(dict)
+        active_subscriptions = 0
+        expired_subscriptions = 0
+
+        for sub in Subscription.objects.select_related('member').all():
+            member_id = sub.member.id
+            category = sub.category
+            # tieni solo l'abbonamento con la data di fine maggiore per ogni socio/categoria
+            if category not in member_categories[member_id] or sub.end_date > member_categories[member_id][category].end_date:
+                member_categories[member_id][category] = sub
+
+        # Conta abbonamenti attivi e scaduti
+        for member_subs in member_categories.values():
+            for sub in member_subs.values():
+                if sub.start_date > today:
+                    continue  # non ancora attivo
+                elif sub.end_date < today:
+                    expired_subscriptions += 1
+                else:
+                    active_subscriptions += 1
+
+        total_subscriptions = Subscription.objects.count()
+
+        context = {
+            'members': members,
+            'total_members': total_members,
+            'active_members': active_members,
+            'total_documents': total_documents,
+            'expired_certificates': expired_certificates,
+            'active_certificates': active_certificates,
+            'total_subscriptions': total_subscriptions,
+            'active_subscriptions': active_subscriptions,
+            'expired_subscriptions': expired_subscriptions,
+            'request': request,
+        }
+
+        return render(request, 'dashboard.html', context)
+    # CASO 2: Cliente (utente palestra)
+    else:
+        # Recupera i suoi abbonamenti
+        subscriptions = Subscription.objects.filter(member=user).order_by("-start_date")
+
+        # Filtra solo l’ultimo per categoria
+        latest_per_category = (
+            subscriptions.values("category")
+            .annotate(last_end=Max("end_date"))
+            .order_by()
         )
+        valid_subscriptions = [
+            sub for sub in subscriptions if any(
+                s["last_end"] == sub.end_date and s["category"] == sub.category
+                for s in latest_per_category
+            )
+        ]
 
-    # Paginazione (10 per pagina)
-    paginator = Paginator(members_qs.order_by('last_name', 'first_name'), 10)
-    page_number = request.GET.get('page')
-    members = paginator.get_page(page_number)
-
-    # Statistiche generali
-    total_members = Member.objects.count()
-    active_members = Member.objects.filter(is_active=True).count()
-    total_documents = MemberDocument.objects.count()
-
-    # Statistiche certificati considerando solo l'ultimo per socio
-    today = timezone.now().date()
-    expired_certificates = 0
-    active_certificates = 0
-
-    for member in Member.objects.all():
-        latest_cert = member.documents.filter(document_type='MEDICAL_CERTIFICATE').order_by('-expiration_date').first()
-        if latest_cert:
-            if latest_cert.expiration_date and latest_cert.expiration_date < today:
-                expired_certificates += 1
-            else:
-                active_certificates += 1
-
-    # Statistiche abbonamenti considerando solo l'ultimo per categoria per socio
-    from collections import defaultdict
-    member_categories = defaultdict(dict)
-    active_subscriptions = 0
-    expired_subscriptions = 0
-
-    for sub in Subscription.objects.select_related('member').all():
-        member_id = sub.member.id
-        category = sub.category
-        # tieni solo l'abbonamento con la data di fine maggiore per ogni socio/categoria
-        if category not in member_categories[member_id] or sub.end_date > member_categories[member_id][category].end_date:
-            member_categories[member_id][category] = sub
-
-    # Conta abbonamenti attivi e scaduti
-    for member_subs in member_categories.values():
-        for sub in member_subs.values():
-            if sub.start_date > today:
-                continue  # non ancora attivo
-            elif sub.end_date < today:
-                expired_subscriptions += 1
-            else:
-                active_subscriptions += 1
-
-    total_subscriptions = Subscription.objects.count()
-
-    context = {
-        'members': members,
-        'total_members': total_members,
-        'active_members': active_members,
-        'total_documents': total_documents,
-        'expired_certificates': expired_certificates,
-        'active_certificates': active_certificates,
-        'total_subscriptions': total_subscriptions,
-        'active_subscriptions': active_subscriptions,
-        'expired_subscriptions': expired_subscriptions,
-        'request': request,
-    }
-
-    return render(request, 'dashboard.html', context)
-
-
-
+        return render(request, "user_dashboard.html", {
+            "member": user,
+            "subscriptions": valid_subscriptions,
+        })
 
 
 @login_required
@@ -207,7 +234,11 @@ def edit_member(request, member_id):
                 doc.save()
             for obj in formset.deleted_objects:
                 obj.delete()
-            return redirect("edit_member", member_id=member.id)
+            return render(request, "member_edit.html", {
+                "member": member,  # <-- questo deve essere sempre un oggetto Member con id
+                "form": form,
+                "formset": formset,
+            })
     else:
         form = MemberChangeForm(instance=member)
         formset = MemberDocumentFormSet(queryset=member.documents.all())
@@ -468,3 +499,5 @@ def add_subscription_admin(request):
         "members": members,
     }
     return render(request, "subscription_form_admin.html", context)
+
+

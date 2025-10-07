@@ -12,7 +12,54 @@
     <link href="{% static '/css/style.css' %}" rel="stylesheet">
 
     <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f9fa;
+        }
 
+        .navbar {
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .navbar-brand {
+            font-weight: 600;
+            font-size: 1.25rem;
+        }
+
+        .nav-link {
+            transition: color 0.2s, transform 0.2s;
+        }
+
+        .nav-link:hover {
+            color: #ffc107 !important;
+            transform: translateY(-1px);
+        }
+
+        .dropdown-menu {
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .main-container {
+            background: white;
+            border-radius: 1rem;
+            padding: 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            margin-top: 2rem;
+        }
+
+        .dropdown-item.text-danger:hover {
+            background-color: #f8d7da;
+            color: #dc3545 !important;
+        }
+
+        footer {
+            text-align: center;
+            font-size: 0.9rem;
+            color: #888;
+            margin-top: 3rem;
+            padding: 1rem 0;
+        }
     </style>
 </head>
 
@@ -31,9 +78,11 @@
 
         <div class="collapse navbar-collapse" id="navbarContent">
             {% if user.is_authenticated %}
-            <!-- Menu principale -->
+
+            <!-- 🔹 MENU AMMINISTRATORE -->
+            {% if user.is_staff or user.is_superuser %}
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                <!-- 🔹 Soci -->
+                <!-- Soci -->
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="membersDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                         👥 Soci
@@ -41,12 +90,10 @@
                     <ul class="dropdown-menu" aria-labelledby="membersDropdown">
                         <li><a class="dropdown-item" href="{% url 'dashboard' %}">Lista Soci</a></li>
                         <li><a class="dropdown-item" href="{% url 'members:add_member' %}">➕ Aggiungi Socio</a></li>
-
-
                     </ul>
                 </li>
 
-                <!-- 🔹 Documenti -->
+                <!-- Documenti -->
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="docsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                         📄 Documenti
@@ -55,26 +102,34 @@
                         <li><a class="dropdown-item" href="{% url 'members:medical_certificate_status' %}">Certificati Medici</a></li>
                         {% if user.is_superuser %}
                             <li><hr class="dropdown-divider"></li>
-                           <li><a  class="dropdown-item text-primary" href="{% url 'members:add_document_admin' %}">➕ Aggiungi Documento</a></li>
-
-                        {% endif %}                    </ul>
+                            <li><a class="dropdown-item text-primary" href="{% url 'members:add_document_admin' %}">➕ Aggiungi Documento</a></li>
+                        {% endif %}
+                    </ul>
                 </li>
 
-                <!-- 🔹 Abbonamenti -->
+                <!-- Abbonamenti -->
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="subsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                         💳 Abbonamenti
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="subsDropdown">
                         <li><a class="dropdown-item" href="{% url 'members:subscription_status' %}">Stato Abbonamenti</a></li>
-                        {% if user.is_staff %}
-                            <li><a class="dropdown-item" href="{% url 'members:add_subscription_admin' %}">➕ Aggiungi Abbonamento</a></li>
-                        {% endif %}
+                        <li><a class="dropdown-item" href="{% url 'members:add_subscription_admin' %}">➕ Aggiungi Abbonamento</a></li>
                     </ul>
                 </li>
             </ul>
 
-            <!-- Menu utente -->
+            {% else %}
+            <!-- 🔹 MENU CLIENTE -->
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'dashboard' %}">🏠 Dashboard</a>
+                </li>
+
+            </ul>
+            {% endif %}
+
+            <!-- 🔧 MENU UTENTE (comune) -->
             <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-center">
                 <li class="nav-item me-2 text-white small">
                     👋 Ciao, {{ user.first_name|default:user.username }}
@@ -97,7 +152,9 @@
                     </ul>
                 </li>
             </ul>
+
             {% else %}
+            <!-- 🔹 Utente non loggato -->
             <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
                 <li class="nav-item">
                     <a class="nav-link" href="{% url 'login' %}">Login</a>
