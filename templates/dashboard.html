@@ -1,65 +1,88 @@
 {% extends "base.html" %}
 {% block title %}Dashboard | SuperGym{% endblock %}
 
+{% load static %}
+
 {% block content %}
+
+{% block head %}
+<link href="{% static '/css/dashboard.css' %}" rel="stylesheet">
+{% endblock %}
+
 <div class="container mt-5">
     <h1 class="mb-4">Dashboard</h1>
 
-    <div class="row mb-5">
-        <div class="col-md-4 col-sm-6 mb-3">
-            <div class="card text-white bg-primary h-100">
-                <div class="card-body">
-                    <h5 class="card-title">Totale Soci</h5>
-                    <p class="card-text fs-3">{{ total_members }}</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4 col-sm-6 mb-3">
-            <div class="card text-white bg-success h-100">
-                <div class="card-body">
-                    <h5 class="card-title">Soci Attivi</h5>
-                    <p class="card-text fs-3">{{ active_members }}</p>
+        <div class="row g-4 mb-5">
+        <!-- Totale Soci -->
+        <div class="col-md-4 col-sm-6">
+            <div class="card h-100 shadow-sm border-0 bg-gradient"
+                 style="background: linear-gradient(135deg, #fff3cd, #ffe69c);">
+                <div class="card-body text-center">
+                    <h5 class="card-title mb-3">👥 Totale Soci</h5>
+                    <p class="display-5 fw-bold">{{ total_members }}</p>
                 </div>
             </div>
         </div>
 
-
-        <div class="col-md-4 col-sm-6 mb-3">
-        <div class="card text-white bg-warning h-100">
-            <div class="card-body">
-                <h5 class="card-title">Certificati Attivi</h5>
-                <p class="card-text fs-3">{{ active_certificates }}</p>
-                <a href="{% url 'members:medical_certificate_status' %}" class="btn btn-light btn-sm mt-2">Vedi Certificati</a>
-            </div>
-        </div>
-        </div>
-
-        <div class="col-md-4 col-sm-6 mb-3">
-        <div class="card text-white bg-danger h-100">
-            <div class="card-body">
-                <h5 class="card-title">Abbonamenti Attivi</h5>
-                <p class="card-text fs-3">{{ active_subscriptions }}</p>
-                <a href="{% url 'members:subscription_status' %}" class="btn btn-light btn-sm mt-2">Vedi Abbonamenti</a>
-            </div>
-        </div>
-        </div>
-
-        <div class="col-md-4 col-sm-6 mb-3">
-            <div class="card text-white bg-secondary h-100">
-                <div class="card-body">
-                    <h5 class="card-title">Certificati Scaduti</h5>
-                    <p class="card-text fs-3">{{ expired_certificates }}</p>
-                    <a href="{% url 'members:medical_certificate_status' %}?status=Scaduto" class="btn btn-light btn-sm mt-2">Vedi Scaduti</a>
+        <!-- Soci Attivi -->
+        <div class="col-md-4 col-sm-6">
+            <div class="card h-100 shadow-sm border-0 bg-gradient"
+                 style="background: linear-gradient(135deg, #198754, #28a745);">
+                <div class="card-body text-center">
+                    <h5 class="card-title mb-3">💪 Soci Attivi</h5>
+                    <p class="display-5 fw-bold">{{ active_members }}</p>
                 </div>
             </div>
         </div>
 
-        <div class="col-md-4 col-sm-6 mb-3">
-            <div class="card text-white bg-dark h-100">
-                <div class="card-body">
-                    <h5 class="card-title">Abbonamenti Scaduti</h5>
-                    <p class="card-text fs-3">{{ expired_subscriptions }}</p>
-                    <a href="{% url 'members:subscription_status' %}?status=Scaduto" class="btn btn-light btn-sm mt-2">Vedi Scaduti</a>
+        <!-- Certificati Attivi (sfondo chiaro → testo scuro) -->
+        <div class="col-md-4 col-sm-6">
+            <div class="card h-100 shadow-sm border-0 bg-gradient"
+                 style="background: linear-gradient(135deg, #fff3cd, #ffe69c);">
+                <div class="card-body text-center">
+                    <h5 class="card-title mb-3">📜 Certificati Attivi</h5>
+                    <p class="display-5 fw-bold">{{ active_certificates }}</p>
+                    <a href="{% url 'members:medical_certificate_status' %}?status=Attivo"
+                       class="btn btn-outline-primary mt-2">🔍 Vedi Certificati</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Abbonamenti Attivi -->
+        <div class="col-md-4 col-sm-6">
+            <div class="card h-100 shadow-sm border-0 bg-gradient"
+                 style="background: linear-gradient(135deg, #dc3545, #e74c3c);">
+                <div class="card-body text-center">
+                    <h5 class="card-title mb-3">💳 Abbonamenti Attivi</h5>
+                    <p class="display-5 fw-bold">{{ active_subscriptions }}</p>
+                    <a href="{% url 'members:subscription_status' %}?status=Attivo"
+                       class="btn btn-outline-primary mt-2">📖 Vedi Abbonamenti</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Certificati Scaduti -->
+        <div class="col-md-4 col-sm-6">
+            <div class="card h-100 shadow-sm border-0 bg-gradient"
+                 style="background: linear-gradient(135deg, #6c757d, #495057);">
+                <div class="card-body text-center">
+                    <h5 class="card-title mb-3">⚠️ Certificati Scaduti</h5>
+                    <p class="display-5 fw-bold">{{ expired_certificates }}</p>
+                    <a href="{% url 'members:medical_certificate_status' %}?status=Scaduto"
+                       class="btn btn-outline-primary mt-2">🔍 Vedi Scaduti</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Abbonamenti Scaduti -->
+        <div class="col-md-4 col-sm-6">
+            <div class="card h-100 shadow-sm border-0 bg-gradient"
+                 style="background: linear-gradient(135deg, #212529, #343a40);">
+                <div class="card-body text-center">
+                    <h5 class="card-title mb-3">📅 Abbonamenti Scaduti</h5>
+                    <p class="display-5 fw-bold">{{ expired_subscriptions }}</p>
+                    <a href="{% url 'members:subscription_status' %}?status=Scaduto"
+                       class="btn btn-outline-primary mt-2">🔍 Vedi Scaduti</a>
                 </div>
             </div>
         </div>
@@ -67,6 +90,7 @@
 
 
 
+    <h1 class="mb-4">Elenco Iscritti</h1>
 
     <!-- Filtro di ricerca -->
     <div class="row mb-3">

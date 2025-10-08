@@ -21,6 +21,7 @@ from django.contrib.auth.views import LoginView
 
 from .forms import AdminMemberDocumentForm
 from django.urls import reverse
+from datetime import date
 
 
 
@@ -117,16 +118,20 @@ def dashboard(request):
             .annotate(last_end=Max("end_date"))
             .order_by()
         )
-        valid_subscriptions = [
-            sub for sub in subscriptions if any(
-                s["last_end"] == sub.end_date and s["category"] == sub.category
-                for s in latest_per_category
-            )
-        ]
+
+        # Decommentare se si vogliono passare solo gli ultimi abbonamenti
+        # valid_subscriptions = [
+        #     sub for sub in subscriptions if any(
+        #         s["last_end"] == sub.end_date and s["category"] == sub.category
+        #         for s in latest_per_category
+        #     )
+        # ]
+        today = date.today()  # 👈 questa è la variabile che serve al template
 
         return render(request, "user_dashboard.html", {
             "member": user,
-            "subscriptions": valid_subscriptions,
+            "subscriptions": subscriptions,
+            "today": today,
         })
 
 
@@ -183,8 +188,8 @@ def add_member(request):
     DocumentFormSet = modelformset_factory(
         MemberDocument,
         form=MemberDocumentForm,
-        extra=1,      # numero di documenti vuoti visualizzati
-        can_delete=True
+        #extra=1,      # numero di documenti vuoti visualizzati
+        #can_delete=True
     )
 
     if request.method == "POST":

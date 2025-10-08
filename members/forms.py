@@ -99,7 +99,7 @@ class AdminMemberDocumentForm(forms.ModelForm):
 MemberDocumentFormSet = modelformset_factory(
     MemberDocument,
     form=MemberDocumentForm,
-    #extra=0,  # default, puoi cambiare quanti documenti visualizzare
+    extra=0,  # default, puoi cambiare quanti documenti visualizzare
     #can_delete=True
 )
 
