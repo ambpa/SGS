@@ -10,6 +10,8 @@ urlpatterns = [
     path('accounts/', include('django.contrib.auth.urls')),  # login/logout/password reset
     path('members/', include('members.urls', namespace='members')),  # tutte le rotte di members
     path('dashboard/', views.dashboard, name='dashboard'),
+    path('subscription-data/', views.subscription_data, name='subscription_data'),
+    path('subscriptions-category-data/', views.subscriptions_by_category, name='subscription_category_data'),
 
     # Root URL punta alla dashboard
     path('', views.dashboard, name='home'),

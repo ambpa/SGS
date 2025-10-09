@@ -22,8 +22,11 @@ from django.contrib.auth.views import LoginView
 from .forms import AdminMemberDocumentForm
 from django.urls import reverse
 from datetime import date
+from django.db.models.functions import TruncMonth, TruncDay
+from django.db.models import Count
+from django.utils.dateparse import parse_date
 
-
+import json
 
 @login_required
 def dashboard(request):
@@ -74,6 +77,10 @@ def dashboard(request):
         active_subscriptions = 0
         expired_subscriptions = 0
 
+        start_date = request.GET.get('start_date')
+        end_date = request.GET.get('end_date')
+
+
         for sub in Subscription.objects.select_related('member').all():
             member_id = sub.member.id
             category = sub.category
@@ -93,6 +100,47 @@ def dashboard(request):
 
         total_subscriptions = Subscription.objects.count()
 
+        # Raggruppa utenti per mese di iscrizione
+        member_stats = (
+            Member.objects
+            .annotate(day=TruncDay('date_joined'))
+            .values('day')
+            .annotate(count=Count('id'))
+            .order_by('day')
+        )
+
+        labels = [m['day'].strftime('%d %b %Y') for m in member_stats]
+        data = [m['count'] for m in member_stats]
+
+        # 🔹 Abbonamenti nel tempo (giornalieri o mensili)
+        # Se viene scelto un intervallo
+        subs = Subscription.objects.all()
+        if start_date:
+            subs = subs.filter(start_date__gte=parse_date(start_date))
+        if end_date:
+            subs = subs.filter(start_date__lte=parse_date(end_date))
+
+
+        subscription_stats = (
+            subs
+            .annotate(date=TruncDay('start_date'))  # o TruncDay per giorno
+            .values('date')
+            .annotate(count=Count('id'))
+            .order_by('date')
+        )
+
+        sub_labels = [s['date'].strftime('%d %b %Y') for s in subscription_stats]
+        sub_data = [s['count'] for s in subscription_stats]
+
+        category_stats = (
+            Subscription.objects
+            .values('category')
+            .annotate(count=Count('id'))
+        )
+
+        cat_labels = [c['category'] for c in category_stats]
+        cat_data = [c['count'] for c in category_stats]
+
         context = {
             'members': members,
             'total_members': total_members,
@@ -103,6 +151,12 @@ def dashboard(request):
             'total_subscriptions': total_subscriptions,
             'active_subscriptions': active_subscriptions,
             'expired_subscriptions': expired_subscriptions,
+            'labels': json.dumps(labels),
+            'data': json.dumps(data),
+            'sub_labels': sub_labels,
+            'sub_data': sub_data,
+            'cat_labels': cat_labels,
+            'cat_data': cat_data,
             'request': request,
         }
 
@@ -506,3 +560,61 @@ def add_subscription_admin(request):
     return render(request, "subscription_form_admin.html", context)
 
 
+# views per recupero dati subscriptio per grafico
+from django.http import JsonResponse
+from django.db.models import Count
+from django.utils.dateparse import parse_date
+
+@login_required
+def subscription_data(request):
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+
+    subs = Subscription.objects.all()
+
+    if start_date:
+        subs = subs.filter(start_date__gte=parse_date(start_date))
+    if end_date:
+        subs = subs.filter(start_date__lte=parse_date(end_date))
+
+    subscription_stats = (
+        subs
+        .annotate(date=TruncDay('start_date'))  # o TruncDay per giorno
+        .values('date')
+        .annotate(count=Count('id'))
+        .order_by('date')
+    )
+
+    labels = [s['date'].strftime('%b %Y') for s in subscription_stats]
+    data = [s['count'] for s in subscription_stats]
+
+    return JsonResponse({'labels': labels, 'data': data})
+
+def subscriptions_by_category(request):
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+
+    qs = Subscription.objects.all()
+    # 🔹 Gestione range concatenato ("2025-10-01 to 2025-10-08")
+    if start_date and 'to' in start_date:
+        parts = start_date.split('to')
+        start_date = parts[0].strip()
+        end_date = parts[1].strip() if len(parts) > 1 else None
+
+    # Filtro dinamico per data
+    if start_date:
+        qs = qs.filter(start_date__gte=parse_date(start_date))
+    if end_date:
+        qs = qs.filter(start_date__lte=parse_date(end_date))
+
+    # Raggruppa per categoria
+    stats = (
+        qs.values('category')
+        .annotate(count=Count('id'))
+        .order_by('category')
+    )
+
+    labels = [item['category'] for item in stats]
+    data = [item['count'] for item in stats]
+
+    return JsonResponse({'labels': labels, 'data': data})

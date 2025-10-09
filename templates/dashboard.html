@@ -7,7 +7,28 @@
 
 {% block head %}
 <link href="{% static '/css/dashboard.css' %}" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 {% endblock %}
+
+{% block extra_js %}
+
+<script>
+  const chartData = {
+    labels: {{ labels|safe }},
+    data: {{ data|safe }},
+    sub_data: {{ sub_data|safe }},
+    sub_labels: {{ sub_labels|safe }},
+    cat_labels: {{ cat_labels|safe }},
+    cat_data: {{ cat_data|safe }},
+  };
+</script>
+
+<!-- Il tuo file JS -->
+<script src="{% static 'js/dashboard.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+{% endblock %}
+
 
 <div class="container mt-5">
     <h1 class="mb-4">Dashboard</h1>
@@ -177,5 +198,58 @@
             </ul>
         </nav>
     </div>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+
+    <!-- 📊 Grafico iscrizioni utenti -->
+    <div class="card mt-5 shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title mb-3">📈 Iscrizioni Utenti nel Tempo</h5>
+        <div id="registrationsChart"></div>
+      </div>
+    </div>
+
+
+    <!-- 📊 Grafico abbonamenti utenti -->
+    <div class="flex gap-3 items-end mb-4">
+      <div>
+        <label for="start_date">Dal:</label>
+        <input type="date" id="start_date" class="form-control">
+      </div>
+      <div>
+        <label for="end_date">Al:</label>
+        <input type="date" id="end_date" class="form-control">
+      </div>
+      <button id="filterBtn" class="btn btn-primary">Aggiorna</button>
+    </div>
+
+    <div class="card mt-5 shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title mb-3">📈 Andamento nuovi abbonamenti</h5>
+        <div id="subscriptions-chart"></div>
+      </div>
+    </div>
+
+
+    <!-- 📊 Iscrizioni per categoria -->
+    <div class="row align-items-end mb-4">
+      <div class="col-md-6">
+        <label for="date_range_categoria" class="form-label fw-bold">Seleziona intervallo date</label>
+        <input type="text" id="date_range_categoria" class="form-control" placeholder="Seleziona intervallo..." />
+      </div>
+      <div class="col-md-2">
+        <button id="filterBtn_categoria" class="btn btn-primary w-100 mt-3">Aggiorna</button>
+      </div>
+    </div>
+
+    <div class="card mt-5 shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title mb-3">📈 Iscrizioni per categoria</h5>
+        <div id="categoryChart"></div>
+      </div>
+    </div>
+
 </div>
+
+
 {% endblock %}
