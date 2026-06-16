@@ -304,6 +304,12 @@ class Subscription(models.Model):
     start_date = models.DateField(verbose_name=_("Data inizio"))
     end_date = models.DateField(verbose_name=_("Data fine"), null=True, blank=True)
 
+    package = models.ForeignKey(
+        'Package', on_delete=models.PROTECT,
+        related_name="subscriptions", verbose_name=_("Pacchetto"),
+        null=True, blank=True,   # nullable per non rompere i record esistenti
+    )
+
     class Meta:
         verbose_name = _("Abbonamento")
         verbose_name_plural = _("Abbonamenti")
@@ -323,19 +329,41 @@ class Subscription(models.Model):
         return "Attivo"
 
     def save(self, *args, **kwargs):
-        """Calcola la data di fine se non impostata manualmente."""
+        # Se c'è un pacchetto, eredita settore e tipo da lì.
+        if self.package_id:
+            if not self.sector_id:
+                self.sector = self.package.sector
+            self.subscription_type = self.package.package_type
+
+        # Calcolo data fine: dal pacchetto se presente, altrimenti come prima.
         if self.start_date and not self.end_date:
-            deltas = {
-                self.SubscriptionType.MONTHLY: relativedelta(months=1),
-                self.SubscriptionType.QUARTERLY: relativedelta(months=3),
-                self.SubscriptionType.FOURMONTH: relativedelta(months=4),
-                self.SubscriptionType.SEMESTRAL: relativedelta(months=6),
-                self.SubscriptionType.ANNUAL: relativedelta(years=1),
-            }
-            delta = deltas.get(self.subscription_type)
+            delta = None
+            if self.package_id and self.package.duration:
+                delta = self.package.duration
+            else:
+                from dateutil.relativedelta import relativedelta
+                delta = {
+                    self.SubscriptionType.MONTHLY: relativedelta(months=1),
+                    self.SubscriptionType.QUARTERLY: relativedelta(months=3),
+                    self.SubscriptionType.FOURMONTH: relativedelta(months=4),
+                    self.SubscriptionType.SEMESTRAL: relativedelta(months=6),
+                    self.SubscriptionType.ANNUAL: relativedelta(years=1),
+                }.get(self.subscription_type)
             if delta:
                 self.end_date = self.start_date + delta
         super().save(*args, **kwargs)
+
+    # 3) AGGIUNGI questa property a Subscription (comoda nei template):
+    @property
+    def is_paid(self):
+        """True se esiste un pagamento collegato e segnato come pagato."""
+        p = self.payments.first()
+        return bool(p and p.is_paid)
+
+    @property
+    def payment(self):
+        """Il pagamento collegato (uno solo), o None."""
+        return self.payments.first()
 
 
 # ---------------------------------------------------------------------------
@@ -362,10 +390,14 @@ class Payment(models.Model):
         Member, on_delete=models.CASCADE,
         related_name="payments", verbose_name=_("Socio"),
     )
-    subscription = models.ForeignKey(
-        Subscription, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name="payments", verbose_name=_("Abbonamento collegato"),
+    subscription = models.OneToOneField(
+        Subscription, on_delete=models.CASCADE,
+        null=True, blank=True,
+        related_name="payments",   # manteniamo il nome 'payments'
+        verbose_name=_("Abbonamento"),
+
     )
+
     payment_type = models.CharField(
         _("Tipo"), max_length=20, choices=PaymentType.choices,
     )
@@ -402,6 +434,40 @@ class Payment(models.Model):
         if self.is_paid:
             return False
         return bool(self.due_date and self.due_date < timezone.now().date())
+
+    def save(self, *args, **kwargs):
+        # Deduci tipo e importo dall'abbonamento collegato (se presente).
+        if self.subscription_id:
+            sub = self.subscription
+            # tipo dedotto dall'abbonamento
+            mapping = {
+                'MONTHLY': self.PaymentType.MONTHLY,
+                'QUARTERLY': self.PaymentType.QUARTERLY,
+                'FOURMONTH': self.PaymentType.FOURMONTH,
+                'SEMESTRAL': self.PaymentType.QUARTERLY,  # fallback ragionevole
+                'ANNUAL': self.PaymentType.ENROLLMENT,
+            }
+            if not self.payment_type:
+                self.payment_type = mapping.get(sub.subscription_type, self.payment_type)
+            # importo bloccato dal prezzo del pacchetto (lo sconto resta a parte)
+            if sub.package_id and (self.amount is None or self.amount == 0):
+                self.amount = sub.package.price
+
+        # Calcolo prossima scadenza (come da Fase 3a)
+        if not self.next_due_date:
+            base = self.due_date or self.payment_date
+            if base:
+                from dateutil.relativedelta import relativedelta
+                deltas = {
+                    self.PaymentType.MONTHLY: relativedelta(months=1),
+                    self.PaymentType.QUARTERLY: relativedelta(months=3),
+                    self.PaymentType.FOURMONTH: relativedelta(months=4),
+                    self.PaymentType.ENROLLMENT: relativedelta(years=1),
+                }
+                delta = deltas.get(self.payment_type)
+                if delta:
+                    self.next_due_date = base + delta
+        super().save(*args, **kwargs)
 
 
 class Package(models.Model):

@@ -3,6 +3,8 @@ from django.urls import path
 from . import views
 from . import views_config
 from . import views_payments
+from . import views_subscriptions
+
 
 app_name = "members"
 
@@ -24,9 +26,15 @@ urlpatterns = [
     path("subscriptions/<int:member_id>/add/", views.add_subscription, name="add_subscription"),
     path('subscriptions/', views.subscription_status, name='subscription_status'),
 
+    path('subscriptions/<int:member_id>/new/',
+         views_subscriptions.add_subscription_with_payment,
+         name='add_subscription_with_payment'),
     #Chiamate per admin
     path('add-document/', views.add_document_admin, name='add_document_admin'),
     path('add-subscription/', views.add_subscription_admin, name='add_subscription_admin'),
+    path('subscriptions/new/',
+         views_subscriptions.add_subscription_with_payment_admin,
+         name='add_subscription_with_payment_admin'),
 
     # --- Configurazione ---
     path('config/', views_config.config_home, name='config_home'),
@@ -54,5 +62,7 @@ urlpatterns = [
     path('config/pacchetti/nuovo/', views_config.package_add, name='package_add'),
     path('config/pacchetti/<int:pk>/modifica/', views_config.package_edit, name='package_edit'),
     path('config/pacchetti/<int:pk>/elimina/', views_config.package_delete, name='package_delete'),
+
+
 
 ]

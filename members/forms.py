@@ -128,16 +128,63 @@ MemberDocumentFormSet = modelformset_factory(
 
 
 
+# ---------------------------------------------------------------------
+#  SubscriptionForm — ora si sceglie il PACCHETTO (obbligatorio).
+#  Tipo e settore vengono dedotti dal pacchetto nel save() del modello.
+# ---------------------------------------------------------------------
 class SubscriptionForm(forms.ModelForm):
     class Meta:
         model = Subscription
-        fields = ['subscription_type', 'sector', 'start_date',]
+        fields = ['package', 'start_date']
         widgets = {
             'start_date': forms.DateInput(attrs={'type': 'date'}),
         }
+        labels = {
+            'package': 'Pacchetto',
+            'start_date': 'Data inizio',
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['package'].queryset = (
+            Package.objects.filter(is_active=True).select_related('sector')
+        )
+        self.fields['package'].required = True
 
 
+# ---------------------------------------------------------------------
+#  SubscriptionWithPaymentForm — crea abbonamento E registra il pagamento
+#  nella stessa schermata. L'IMPORTO non e' nel form: e' bloccato dal
+#  prezzo del pacchetto. Lo sconto resta modificabile.
+# ---------------------------------------------------------------------
+class SubscriptionWithPaymentForm(forms.Form):
+    package = forms.ModelChoiceField(
+        queryset=Package.objects.filter(is_active=True).select_related('sector'),
+        label="Pacchetto", required=True,
+    )
+    start_date = forms.DateField(
+        label="Data inizio",
+        widget=forms.DateInput(attrs={'type': 'date'}),
+    )
+    # --- pagamento ---
+    payment_date = forms.DateField(
+        label="Data pagamento", required=False,
+        widget=forms.DateInput(attrs={'type': 'date'}),
+    )
+    payment_mode = forms.ChoiceField(
+        label="Modalita'", required=False,
+    )
+    discount = forms.DecimalField(
+        label="Sconto", required=False, min_value=0,
+        decimal_places=2, max_digits=8, initial=0,
+    )
+    is_paid = forms.BooleanField(label="Pagato", required=False, initial=True)
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Popola le scelte di modalita' dal modello (import locale: evita cicli)
+        from .models import Payment
+        self.fields['payment_mode'].choices = [('', '---')] + list(Payment.PaymentMode.choices)
 
 
 class SectorForm(forms.ModelForm):
@@ -198,3 +245,19 @@ class PaymentForm(forms.ModelForm):
         self.fields['enrollment_amount'].required = False
         if member is not None:
             self.fields['subscription'].queryset = member.subscriptions.all()
+
+class SubscriptionWithPaymentAndMemberForm(SubscriptionWithPaymentForm):
+    member = forms.ModelChoiceField(
+        queryset=None,  # impostato in __init__
+        label="Socio", required=True,
+    )
+
+    field_order = ['member', 'package', 'start_date',
+                   'payment_date', 'payment_mode', 'discount', 'is_paid']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from .models import Member
+        self.fields['member'].queryset = Member.objects.filter(
+            is_dismissed=False
+        ).order_by('last_name', 'first_name')

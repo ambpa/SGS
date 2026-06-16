@@ -1,45 +1,45 @@
 /* ============================================================
-   Harmony Body System — Tema "Verde energico"
-   Un solo punto di verità per colori, spaziature e componenti.
-   Per cambiare la tonalità del brand basta toccare le variabili
-   --hbs-* qui sotto.
+   Harmony Body System — Tema "Blu Elegante"
+   Blu profondo + grigi freddi: professionale, affidabile,
+   moderno e premium.
+   (I nomi --hbs-green-* sono mantenuti per compatibilità.)
    ============================================================ */
 
 :root {
-    /* Palette brand */
-    --hbs-green-900: #173404;
-    --hbs-green-800: #27500A;
-    --hbs-green-700: #3B6D11;
-    --hbs-green-600: #639922;
-    --hbs-green-400: #97C459;
-    --hbs-green-100: #C0DD97;
-    --hbs-green-050: #EAF3DE;
+    /* Palette brand (blu elegante) */
+    --hbs-green-900: #0F1E35;
+    --hbs-green-800: #183256;
+    --hbs-green-700: #24508A;
+    --hbs-green-600: #356FB8;
+    --hbs-green-400: #78A6E3;
+    --hbs-green-100: #C7DAF5;
+    --hbs-green-050: #EEF4FD;
 
     /* Stati */
-    --hbs-success-bg: #EAF3DE;
-    --hbs-success-fg: #3B6D11;
+    --hbs-success-bg: #E8F5EC;
+    --hbs-success-fg: #247248;
     --hbs-danger-bg:  #FCEBEB;
     --hbs-danger-fg:  #A32D2D;
     --hbs-warning-bg: #FAEEDA;
     --hbs-warning-fg: #854F0B;
-    --hbs-muted-bg:   #F1EFE8;
-    --hbs-muted-fg:   #5F5E5A;
+    --hbs-muted-bg:   #F2F4F7;
+    --hbs-muted-fg:   #6A7280;
 
     /* Superfici */
-    --hbs-bg:        #F6F7F4;
+    --hbs-bg:        #F6F8FB;
     --hbs-surface:   #FFFFFF;
-    --hbs-border:    #E3E6DD;
-    --hbs-text:      #1F2417;
-    --hbs-text-soft: #5F6356;
+    --hbs-border:    #DDE4EE;
+    --hbs-text:      #1B2430;
+    --hbs-text-soft: #667085;
 
     /* Layout */
     --hbs-sidebar-w: 230px;
     --hbs-radius:    10px;
     --hbs-radius-sm: 8px;
 
-    /* Override Bootstrap: il "primary" diventa verde */
+    /* Override Bootstrap */
     --bs-primary: var(--hbs-green-700);
-    --bs-primary-rgb: 59, 109, 17;
+    --bs-primary-rgb: 36, 80, 138;
     --bs-link-color: var(--hbs-green-700);
     --bs-link-hover-color: var(--hbs-green-800);
     --bs-body-bg: var(--hbs-bg);
