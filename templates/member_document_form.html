@@ -1,57 +1,38 @@
 {% extends "base.html" %}
-{% block title %}Documento Socio | SuperGym{% endblock %}
+{% load static %}
+{% load form_tags %}
 
-{% load widget_tweaks %}
+{% block title %}{{ title|default:"Documento" }} · Harmony Body System{% endblock %}
 
 {% block content %}
-<div class="container mt-5">
-
-    <!-- Titolo pagina -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h3">
-            {% if document %}
-                Modifica Documento per {{ member }}
-            {% elif member %}
-                Aggiungi Documento per {{ member }}
-            {% else %}
-                Aggiungi Documento a un Socio
-            {% endif %}
-        </h1>
-        {% if member %}
-            <a href="{% url 'members:edit_member' member.id %}" class="btn btn-outline-secondary">
-                ⬅ Torna al Socio
-            </a>
-        {% endif %}
+<div class="hbs-pagehead">
+    <div>
+        <h1>{{ title|default:"Documento socio" }}</h1>
+        <p class="hbs-pagehead__sub">{% if member %}{{ member.get_full_name|default:member.username }}{% endif %}</p>
     </div>
-
-    <!-- Form Documento -->
-    <div class="card shadow p-4">
-        <form method="post" enctype="multipart/form-data">
-            {% csrf_token %}
-
-            <div class="row g-3">
-                {% for field in form %}
-                    <div class="col-md-6">
-                        <label class="form-label">{{ field.label }}</label>
-                        {{ field|add_class:"form-control" }}
-                        {% if field.help_text %}
-                            <small class="form-text text-muted">{{ field.help_text }}</small>
-                        {% endif %}
-                        {% for error in field.errors %}
-                            <div class="text-danger small">{{ error }}</div>
-                        {% endfor %}
-                    </div>
-                {% endfor %}
-            </div>
-
-            <div class="mt-4 d-flex gap-2">
-                <button type="submit" class="btn btn-success">💾 Salva Documento</button>
-                {% if member %}
-                    <a href="{% url 'members:edit_member' member.id %}" class="btn btn-secondary">❌ Annulla</a>
-                {% endif %}
-            </div>
-        </form>
+    {% if member %}
+    <div class="hbs-pagehead__actions">
+        <a href="{% url 'members:edit_member' member.id %}" class="hbs-btn hbs-btn--ghost"><i class="ti ti-arrow-left"></i> Torna al socio</a>
     </div>
+    {% endif %}
+</div>
 
+<div class="hbs-card" style="max-width:640px;">
+    <div class="hbs-card__title"><i class="ti ti-file-upload"></i> Dati documento</div>
+    <form method="post" enctype="multipart/form-data" class="hbs-form">
+        {% csrf_token %}
+        {% for field in form %}
+            <div class="hbs-field">
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field|add_class:"form-control" }}
+                {% if field.help_text %}<span class="helptext">{{ field.help_text|safe }}</span>{% endif %}
+                {% if field.errors %}<ul class="errorlist">{% for e in field.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+            </div>
+        {% endfor %}
+        <div class="d-flex" style="gap:8px; margin-top:6px;">
+            <button type="submit" class="hbs-btn hbs-btn--primary"><i class="ti ti-device-floppy"></i> Salva</button>
+            {% if member %}<a href="{% url 'members:edit_member' member.id %}" class="hbs-btn hbs-btn--ghost">Annulla</a>{% endif %}
+        </div>
+    </form>
 </div>
 {% endblock %}

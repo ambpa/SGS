@@ -1,77 +1,104 @@
 # members/views.py
-from django.shortcuts import  get_object_or_404, redirect
-from django.contrib.auth.decorators import login_required
-from django.db.models import Q, Max
-from django.contrib import messages
-from .models import MemberDocument
-from .forms import MemberCreationForm, MemberDocumentForm
-from .forms import MemberChangeForm, MemberDocumentFormSet
-
-from django.forms import modelformset_factory
-from django.core.paginator import Paginator
-
-from django.contrib.auth.forms import PasswordChangeForm
-from django.contrib.auth import update_session_auth_hash
-
-from .models import Subscription
-from .forms import SubscriptionForm
-
-from django.contrib.admin.views.decorators import staff_member_required
-from django.contrib.auth.views import LoginView
-
-from .forms import AdminMemberDocumentForm
-from django.urls import reverse
-from datetime import date
-from django.db.models.functions import TruncMonth, TruncDay
-from django.db.models import Count
-from django.utils.dateparse import parse_date
-
 import json
+from datetime import date
+from functools import wraps
 
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages as django_messages
+from django.core.exceptions import PermissionDenied
+from django.core.paginator import Paginator
+from django.db.models import Q, Max, Count
+from django.db.models.functions import TruncDay
+from django.forms import modelformset_factory
+from django.http import JsonResponse
+from django.utils import timezone
+from django.utils.dateparse import parse_date
+from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth.forms import PasswordChangeForm
+
+from .models import Member, MemberDocument, Subscription
+from .forms import (
+    MemberCreationForm, MemberChangeForm, MemberDocumentForm,
+    MemberDocumentFormSet, SubscriptionForm, AdminMemberDocumentForm,
+)
+
+
+# ---------------------------------------------------------------------------
+#  CONTROLLO ACCESSI
+# ---------------------------------------------------------------------------
+def office_required(view_func):
+    """
+    Consente l'accesso solo al personale di segreteria/amministratore.
+    Sostituisce @staff_member_required (che reindirizza all'admin) con un
+    controllo coerente con l'app. Un socio normale riceve 403.
+    """
+    @wraps(view_func)
+    @login_required
+    def _wrapped(request, *args, **kwargs):
+        user = request.user
+        if user.is_staff or user.is_superuser or getattr(user, "is_office", False):
+            return view_func(request, *args, **kwargs)
+        raise PermissionDenied
+    return _wrapped
+
+
+def _is_office(user):
+    return user.is_staff or user.is_superuser or getattr(user, "is_office", False)
+
+
+# ---------------------------------------------------------------------------
+#  DASHBOARD
+# ---------------------------------------------------------------------------
 @login_required
 def dashboard(request):
-
     user = request.user
 
     # 🟩 CASO 1: Admin o staff
-    if user.is_staff or user.is_superuser:
+    if _is_office(user):
         search_query = request.GET.get('q', '')
 
-        # Recupera tutti i soci filtrando per ricerca
         members_qs = Member.objects.all()
         if search_query:
             members_qs = members_qs.filter(
-                first_name__icontains=search_query
-            ) | members_qs.filter(
-                last_name__icontains=search_query
-            ) | members_qs.filter(
-                email__icontains=search_query
+                Q(first_name__icontains=search_query) |
+                Q(last_name__icontains=search_query) |
+                Q(email__icontains=search_query)
             )
 
-        # Paginazione (10 per pagina)
         paginator = Paginator(members_qs.order_by('last_name', 'first_name'), 10)
         page_number = request.GET.get('page')
         members = paginator.get_page(page_number)
 
-        # Statistiche generali
         total_members = Member.objects.count()
         active_members = Member.objects.filter(is_active=True).count()
         total_documents = MemberDocument.objects.count()
 
-        # Statistiche certificati considerando solo l'ultimo per socio
         today = timezone.now().date()
         expired_certificates = 0
         active_certificates = 0
 
-        for member in Member.objects.all():
-            latest_cert = member.documents.filter(document_type='MEDICAL_CERTIFICATE').order_by('-expiration_date').first()
+        expired_certificates = 0
+        active_certificates = 0
+        suspended_certificates = 0
+
+        for member in Member.objects.prefetch_related('documents', 'subscriptions'):
+            latest_cert = (
+                member.documents
+                .filter(document_type='MEDICAL_CERTIFICATE')
+                .order_by('-expiration_date')
+                .first()
+            )
             if latest_cert:
                 if latest_cert.expiration_date and latest_cert.expiration_date < today:
                     expired_certificates += 1
                 else:
                     active_certificates += 1
+            else:
+                # Nessun certificato caricato: "sospeso" SOLO se ha almeno un abbonamento
+                if member.subscriptions.exists():
+                    suspended_certificates += 1
 
-        # Statistiche abbonamenti considerando solo l'ultimo per categoria per socio
         from collections import defaultdict
         member_categories = defaultdict(dict)
         active_subscriptions = 0
@@ -80,27 +107,30 @@ def dashboard(request):
         start_date = request.GET.get('start_date')
         end_date = request.GET.get('end_date')
 
-
         for sub in Subscription.objects.select_related('member').all():
             member_id = sub.member.id
-            category = sub.category
-            # tieni solo l'abbonamento con la data di fine maggiore per ogni socio/categoria
-            if category not in member_categories[member_id] or sub.end_date > member_categories[member_id][category].end_date:
+            category = sub.sector_id  # FK al settore
+            current = member_categories[member_id].get(category)
+            # tieni l'abbonamento con end_date maggiore (None considerato minimo)
+            if current is None:
                 member_categories[member_id][category] = sub
+            else:
+                cur_end = current.end_date or date.min
+                new_end = sub.end_date or date.min
+                if new_end > cur_end:
+                    member_categories[member_id][category] = sub
 
-        # Conta abbonamenti attivi e scaduti
         for member_subs in member_categories.values():
             for sub in member_subs.values():
-                if sub.start_date > today:
+                if sub.start_date and sub.start_date > today:
                     continue  # non ancora attivo
-                elif sub.end_date < today:
+                elif sub.end_date and sub.end_date < today:
                     expired_subscriptions += 1
                 else:
                     active_subscriptions += 1
 
         total_subscriptions = Subscription.objects.count()
 
-        # Raggruppa utenti per mese di iscrizione
         member_stats = (
             Member.objects
             .annotate(day=TruncDay('date_joined'))
@@ -108,37 +138,31 @@ def dashboard(request):
             .annotate(count=Count('id'))
             .order_by('day')
         )
+        labels = [m['day'].strftime('%d %b %Y') for m in member_stats if m['day']]
+        data = [m['count'] for m in member_stats if m['day']]
 
-        labels = [m['day'].strftime('%d %b %Y') for m in member_stats]
-        data = [m['count'] for m in member_stats]
-
-        # 🔹 Abbonamenti nel tempo (giornalieri o mensili)
-        # Se viene scelto un intervallo
         subs = Subscription.objects.all()
         if start_date:
             subs = subs.filter(start_date__gte=parse_date(start_date))
         if end_date:
             subs = subs.filter(start_date__lte=parse_date(end_date))
 
-
         subscription_stats = (
             subs
-            .annotate(date=TruncDay('start_date'))  # o TruncDay per giorno
+            .annotate(date=TruncDay('start_date'))
             .values('date')
             .annotate(count=Count('id'))
             .order_by('date')
         )
-
-        sub_labels = [s['date'].strftime('%d %b %Y') for s in subscription_stats]
-        sub_data = [s['count'] for s in subscription_stats]
+        sub_labels = [s['date'].strftime('%d %b %Y') for s in subscription_stats if s['date']]
+        sub_data = [s['count'] for s in subscription_stats if s['date']]
 
         category_stats = (
             Subscription.objects
-            .values('category')
+            .values('sector__name')
             .annotate(count=Count('id'))
         )
-
-        cat_labels = [c['category'] for c in category_stats]
+        cat_labels = [c['sector__name'] or '—' for c in category_stats]
         cat_data = [c['count'] for c in category_stats]
 
         context = {
@@ -158,133 +182,114 @@ def dashboard(request):
             'cat_labels': cat_labels,
             'cat_data': cat_data,
             'request': request,
+            'suspended_certificates': suspended_certificates,
         }
-
         return render(request, 'dashboard.html', context)
-    # CASO 2: Cliente (utente palestra)
-    else:
-        # Recupera i suoi abbonamenti
-        subscriptions = Subscription.objects.filter(member=user).order_by("-start_date")
 
-        # Filtra solo l’ultimo per categoria
-        latest_per_category = (
-            subscriptions.values("category")
-            .annotate(last_end=Max("end_date"))
-            .order_by()
-        )
-
-        # Decommentare se si vogliono passare solo gli ultimi abbonamenti
-        # valid_subscriptions = [
-        #     sub for sub in subscriptions if any(
-        #         s["last_end"] == sub.end_date and s["category"] == sub.category
-        #         for s in latest_per_category
-        #     )
-        # ]
-        today = date.today()  # 👈 questa è la variabile che serve al template
-
-        return render(request, "user_dashboard.html", {
-            "member": user,
-            "subscriptions": subscriptions,
-            "today": today,
-        })
+    # 🟦 CASO 2: Socio
+    subscriptions = Subscription.objects.filter(member=user).order_by("-start_date")
+    today = date.today()
+    return render(request, "user_dashboard.html", {
+        "member": user,
+        "subscriptions": subscriptions,
+        "today": today,
+    })
 
 
+# ---------------------------------------------------------------------------
+#  PROFILO / PASSWORD
+# ---------------------------------------------------------------------------
 @login_required
 def profile(request):
     user = request.user
-    messages = []
+    feedback = []  # rinominato: non sovrascrivere il modulo 'messages'
 
-    # Gestione cambio password
     if request.method == 'POST':
         password_form = PasswordChangeForm(user, request.POST)
         if password_form.is_valid():
             password_form.save()
-            messages.append({'tags': 'success', 'message': 'Password aggiornata con successo.'})
+            update_session_auth_hash(request, user)
+            feedback.append({'tags': 'success', 'message': 'Password aggiornata con successo.'})
         else:
-            messages.append({'tags': 'danger', 'message': 'Errore nell\'aggiornamento della password.'})
+            feedback.append({'tags': 'danger', 'message': "Errore nell'aggiornamento della password."})
     else:
         password_form = PasswordChangeForm(user)
 
-    # Recupera subscription dell'utente loggato
     today = timezone.now().date()
-    subscriptions = Subscription.objects.filter(member_id=user).order_by('-start_date')
+    subscriptions = Subscription.objects.filter(member=user).order_by('-start_date')
 
     subscriptions_list = []
-
     for sub in subscriptions:
-        if sub.start_date > today:
+        if sub.start_date and sub.start_date > today:
             status = "Non ancora attivo"
         elif sub.end_date and sub.end_date < today:
             status = "Scaduto"
         else:
             status = "Attivo"
-        subscriptions_list.append({
-            'subscription': sub,
-            'status': status
-        })
-
+        subscriptions_list.append({'subscription': sub, 'status': status})
 
     context = {
         'user': user,
         'password_form': password_form,
-        'messages': messages,
+        'messages': feedback,
         'subscriptions_list': subscriptions_list,
     }
-    print(subscriptions_list)
-    return render(request, "members/profile.html", context )
+    return render(request, "members/profile.html", context)
+
 
 @login_required
+def change_own_password(request):
+    if request.method == "POST":
+        form = PasswordChangeForm(request.user, request.POST)
+        if form.is_valid():
+            user = form.save()
+            update_session_auth_hash(request, user)
+            django_messages.success(request, "La tua password è stata aggiornata con successo!")
+            return redirect("dashboard")
+    else:
+        form = PasswordChangeForm(request.user)
+    return render(request, "change_own_password.html", {"form": form})
+
+
+# ---------------------------------------------------------------------------
+#  GESTIONE SOCI  (solo segreteria)
+# ---------------------------------------------------------------------------
+@office_required
 def add_member(request):
-    """
-    Crea un nuovo socio e permette di caricare più documenti associati.
-    """
-    # Creiamo un formset per i documenti (max 5 documenti per esempio)
-    DocumentFormSet = modelformset_factory(
-        MemberDocument,
-        form=MemberDocumentForm,
-        #extra=1,      # numero di documenti vuoti visualizzati
-        #can_delete=True
-    )
+    DocumentFormSet = modelformset_factory(MemberDocument, form=MemberDocumentForm)
 
     if request.method == "POST":
         member_form = MemberCreationForm(request.POST)
-        document_formset = DocumentFormSet(request.POST, request.FILES, queryset=MemberDocument.objects.none())
-
+        document_formset = DocumentFormSet(
+            request.POST, request.FILES, queryset=MemberDocument.objects.none()
+        )
         if member_form.is_valid() and document_formset.is_valid():
-            # Salva il socio
             member = member_form.save()
-
-            # Salva tutti i documenti e assegna il socio
             for form in document_formset:
                 if form.cleaned_data and not form.cleaned_data.get('DELETE', False):
                     document = form.save(commit=False)
                     document.member = member
                     document.save()
-
-            messages.success(request, f"Socio '{member}' creato con successo!")
-            return redirect('dashboard')  # O la pagina che vuoi
-        else:
-            messages.error(request, "Errore nella creazione del socio o dei documenti. Controlla i dati inseriti.")
+            django_messages.success(request, f"Socio '{member}' creato con successo!")
+            return redirect('dashboard')
+        django_messages.error(request, "Errore nella creazione del socio o dei documenti.")
     else:
         member_form = MemberCreationForm()
         document_formset = DocumentFormSet(queryset=MemberDocument.objects.none())
 
-    context = {
+    return render(request, "add_member.html", {
         "member_form": member_form,
         "document_formset": document_formset,
-    }
-    return render(request, "add_member.html", context)
+    })
 
 
-# Modifica socio
-@login_required
+@office_required
 def edit_member(request, member_id):
     member = get_object_or_404(Member, id=member_id)
 
     if request.method == "POST":
         form = MemberChangeForm(request.POST, instance=member)
         formset = MemberDocumentFormSet(request.POST, request.FILES, queryset=member.documents.all())
-
         if form.is_valid() and formset.is_valid():
             form.save()
             docs = formset.save(commit=False)
@@ -293,41 +298,23 @@ def edit_member(request, member_id):
                 doc.save()
             for obj in formset.deleted_objects:
                 obj.delete()
-            return render(request, "member_edit.html", {
-                "member": member,  # <-- questo deve essere sempre un oggetto Member con id
-                "form": form,
-                "formset": formset,
-            })
+            django_messages.success(request, "Modifiche salvate.")
+            return redirect("members:edit_member", member_id=member.id)
     else:
         form = MemberChangeForm(instance=member)
         formset = MemberDocumentFormSet(queryset=member.documents.all())
 
     return render(request, "member_edit.html", {
-        "member": member,
-        "form": form,
-        "formset": formset,
+        "member": member, "form": form, "formset": formset,
     })
 
 
-@login_required
-def change_own_password(request):
-    """Permette all'utente loggato di cambiare la propria password."""
-    if request.method == "POST":
-        form = PasswordChangeForm(request.user, request.POST)
-        if form.is_valid():
-            user = form.save()
-            update_session_auth_hash(request, user)  # mantiene il login attivo
-            messages.success(request, "La tua password è stata aggiornata con successo!")
-            return redirect("dashboard")  # o dove vuoi reindirizzare
-    else:
-        form = PasswordChangeForm(request.user)
-
-    return render(request, "change_own_password.html", {"form": form})
-
-@login_required
+# ---------------------------------------------------------------------------
+#  DOCUMENTI
+# ---------------------------------------------------------------------------
+@office_required
 def add_member_document(request, member_id):
     member = get_object_or_404(Member, id=member_id)
-
     if request.method == "POST":
         form = MemberDocumentForm(request.POST, request.FILES)
         if form.is_valid():
@@ -337,16 +324,13 @@ def add_member_document(request, member_id):
             return redirect("members:edit_member", member_id=member.id)
     else:
         form = MemberDocumentForm()
-
     return render(request, "member_document_form.html", {"form": form, "member": member})
 
 
-# Modifica documento
-@login_required
+@office_required
 def edit_member_document(request, document_id):
     document = get_object_or_404(MemberDocument, id=document_id)
     member = document.member
-
     if request.method == "POST":
         form = MemberDocumentForm(request.POST, request.FILES, instance=document)
         if form.is_valid():
@@ -354,12 +338,11 @@ def edit_member_document(request, document_id):
             return redirect("members:edit_member", member_id=member.id)
     else:
         form = MemberDocumentForm(instance=document)
+    return render(request, "member_document_form.html",
+                  {"form": form, "member": member, "document": document})
 
-    return render(request, "member_document_form.html", {"form": form, "member": member, "document": document})
 
-
-# Elimina documento
-@login_required
+@office_required
 def delete_member_document(request, document_id):
     document = get_object_or_404(MemberDocument, id=document_id)
     member_id = document.member.id
@@ -367,68 +350,49 @@ def delete_member_document(request, document_id):
     return redirect("members:edit_member", member_id=member_id)
 
 
-from django.shortcuts import render
-from django.utils import timezone
-from .models import Member
-
-
-@login_required
-@staff_member_required
+@office_required
 def add_document_admin(request):
-    """
-    Permette solo all'amministratore di aggiungere un documento
-    scegliendo a quale socio associarlo.
-    """
     if request.method == 'POST':
         form = AdminMemberDocumentForm(request.POST, request.FILES)
         if form.is_valid():
             document = form.save()
-            messages.success(request, f"Documento aggiunto correttamente a {document.member}.")
+            django_messages.success(request, f"Documento aggiunto correttamente a {document.member}.")
             return redirect('members:edit_member', member_id=document.member.id)
     else:
         form = AdminMemberDocumentForm()
-
-    context = {
-        'form': form,
-        'title': "Aggiungi documento a socio"
-    }
-    return render(request, 'member_document_form.html', context)
+    return render(request, 'member_document_form.html',
+                  {'form': form, 'title': "Aggiungi documento a socio"})
 
 
-
+# ---------------------------------------------------------------------------
+#  STATO CERTIFICATI MEDICI  (solo segreteria)
+# ---------------------------------------------------------------------------
+@office_required
 def medical_certificate_status(request):
-    # Recupera tutti i soci con i documenti
     members = Member.objects.all().prefetch_related('documents')
     today = timezone.now().date()
-
-    # Prendi i parametri GET per filtro e ricerca
     search_query = request.GET.get('q', '').lower()
     status_filter = request.GET.get('status', '')
 
     members_status = []
-
     for member in members:
-        # Filtro per ricerca testo (nome, cognome, email, username)
         if search_query:
-            if search_query not in member.first_name.lower() \
-               and search_query not in member.last_name.lower() \
-               and search_query not in member.email.lower() \
-               and search_query not in member.username.lower():
+            haystack = " ".join([
+                member.first_name or "", member.last_name or "",
+                member.email or "", member.username or "",
+            ]).lower()
+            if search_query not in haystack:
                 continue
 
-        # Filtra i documenti tipo Certificato Medico
-        medical_docs = [d for d in member.documents.all() if d.document_type == 'MEDICAL_CERTIFICATE']
-
+        medical_docs = [d for d in member.documents.all()
+                        if d.document_type == 'MEDICAL_CERTIFICATE']
         if medical_docs:
-            # Ordina per expiration_date decrescente (None alla fine)
             medical_docs_sorted = sorted(
                 medical_docs,
-                key=lambda d: d.expiration_date if d.expiration_date else timezone.datetime.min.date(),
-                reverse=True
+                key=lambda d: d.expiration_date if d.expiration_date else date.min,
+                reverse=True,
             )
             doc = medical_docs_sorted[0]
-
-            # Controllo stato
             if doc.expiration_date and doc.expiration_date < today:
                 status = "Scaduto"
             else:
@@ -437,38 +401,28 @@ def medical_certificate_status(request):
             doc = None
             status = "Assente"
 
-        # Filtro per stato
         if status_filter and status != status_filter:
             continue
 
-        members_status.append({
-            'member': member,
-            'document': doc,
-            'cert_status': status
-        })
+        members_status.append({'member': member, 'document': doc, 'cert_status': status})
 
-    context = {
-        'members_status': members_status,
-    }
-    return render(request, 'medical_certificate_status.html', context)
+    return render(request, 'medical_certificate_status.html', {'members_status': members_status})
 
 
-@login_required
+# ---------------------------------------------------------------------------
+#  ABBONAMENTI
+# ---------------------------------------------------------------------------
+@office_required
 def subscription_list(request, member_id):
     member = get_object_or_404(Member, id=member_id)
     subscriptions = member.subscriptions.all().order_by('-end_date')
-
-    context = {
-        'member': member,
-        'subscriptions': subscriptions,
-    }
-    return render(request, 'subscription_list.html', context)
+    return render(request, 'subscription_list.html',
+                  {'member': member, 'subscriptions': subscriptions})
 
 
-@login_required
+@office_required
 def add_subscription(request, member_id):
     member = get_object_or_404(Member, id=member_id)
-
     if request.method == 'POST':
         form = SubscriptionForm(request.POST)
         if form.is_valid():
@@ -478,100 +432,71 @@ def add_subscription(request, member_id):
             return redirect('members:subscription_list', member_id=member.id)
     else:
         form = SubscriptionForm()
-
-    context = {
-        'member': member,
-        'form': form
-    }
-    return render(request, 'subscription_form.html', context)
+    return render(request, 'subscription_form.html', {'member': member, 'form': form})
 
 
+@office_required
 def subscription_status(request):
     today = timezone.now().date()
     search_query = request.GET.get('q', '').lower()
     status_filter = request.GET.get('status', '')
 
     subscriptions_status = []
-
-    # Recupera tutte le subscriptions con prefetched member
     subscriptions = Subscription.objects.select_related('member').all()
-
     for sub in subscriptions:
         member = sub.member
-
-        # Filtro ricerca testo su informazioni utente
         if search_query:
-            if search_query not in member.first_name.lower() \
-               and search_query not in member.last_name.lower() \
-               and search_query not in member.email.lower() \
-               and search_query not in member.username.lower():
+            haystack = " ".join([
+                member.first_name or "", member.last_name or "",
+                member.email or "", member.username or "",
+            ]).lower()
+            if search_query not in haystack:
                 continue
 
-        # Calcola stato dell'abbonamento
-        if sub.start_date > today:
+        if sub.start_date and sub.start_date > today:
             status = "Non ancora attivo"
         elif sub.end_date and sub.end_date < today:
             status = "Scaduto"
         else:
             status = "Attivo"
 
-        # Filtro per stato
         if status_filter and status != status_filter:
             continue
 
-        subscriptions_status.append({
-            'subscription': sub,
-            'member': member,
-            'status': status
-        })
+        subscriptions_status.append({'subscription': sub, 'member': member, 'status': status})
 
-    context = {
-        'subscriptions_status': subscriptions_status
-    }
-    return render(request, 'subscription_status.html', context)
+    return render(request, 'subscription_status.html',
+                  {'subscriptions_status': subscriptions_status})
 
-@login_required
-@staff_member_required
+
+@office_required
 def add_subscription_admin(request):
-    """Permette all'admin di scegliere il socio a cui associare un nuovo abbonamento."""
-    from .forms import SubscriptionForm
-    from .models import Member, Subscription
-
     if request.method == "POST":
         form = SubscriptionForm(request.POST)
         selected_member_id = request.POST.get("member")
-
         if form.is_valid() and selected_member_id:
             member = get_object_or_404(Member, id=selected_member_id)
             subscription = form.save(commit=False)
             subscription.member = member
             subscription.save()
-            messages.success(request, f"Abbonamento aggiunto con successo per {member}.")
+            django_messages.success(request, f"Abbonamento aggiunto con successo per {member}.")
             return redirect("dashboard")
     else:
         form = SubscriptionForm()
 
     members = Member.objects.all().order_by("last_name", "first_name")
-
-    context = {
-        "form": form,
-        "members": members,
-    }
-    return render(request, "subscription_form_admin.html", context)
+    return render(request, "subscription_form_admin.html", {"form": form, "members": members})
 
 
-# views per recupero dati subscriptio per grafico
-from django.http import JsonResponse
-from django.db.models import Count
-from django.utils.dateparse import parse_date
-
-@login_required
+# ---------------------------------------------------------------------------
+#  ENDPOINT JSON PER I GRAFICI  (solo segreteria)
+# ---------------------------------------------------------------------------
+@office_required
 def subscription_data(request):
     start_date = request.GET.get('start_date')
     end_date = request.GET.get('end_date')
 
     subs = Subscription.objects.all()
-
     if start_date:
         subs = subs.filter(start_date__gte=parse_date(start_date))
     if end_date:
@@ -579,42 +504,37 @@ def subscription_data(request):
 
     subscription_stats = (
         subs
-        .annotate(date=TruncDay('start_date'))  # o TruncDay per giorno
+        .annotate(date=TruncDay('start_date'))
         .values('date')
         .annotate(count=Count('id'))
         .order_by('date')
     )
-
-    labels = [s['date'].strftime('%b %Y') for s in subscription_stats]
-    data = [s['count'] for s in subscription_stats]
-
+    labels = [s['date'].strftime('%b %Y') for s in subscription_stats if s['date']]
+    data = [s['count'] for s in subscription_stats if s['date']]
     return JsonResponse({'labels': labels, 'data': data})
 
+
+@office_required
 def subscriptions_by_category(request):
     start_date = request.GET.get('start_date')
     end_date = request.GET.get('end_date')
 
     qs = Subscription.objects.all()
-    # 🔹 Gestione range concatenato ("2025-10-01 to 2025-10-08")
     if start_date and 'to' in start_date:
         parts = start_date.split('to')
         start_date = parts[0].strip()
         end_date = parts[1].strip() if len(parts) > 1 else None
 
-    # Filtro dinamico per data
     if start_date:
         qs = qs.filter(start_date__gte=parse_date(start_date))
     if end_date:
         qs = qs.filter(start_date__lte=parse_date(end_date))
 
-    # Raggruppa per categoria
     stats = (
-        qs.values('category')
+        qs.values('sector__name')
         .annotate(count=Count('id'))
-        .order_by('category')
+        .order_by('sector__name')
     )
-
-    labels = [item['category'] for item in stats]
+    labels = [item['sector__name'] or '—' for item in stats]
     data = [item['count'] for item in stats]
-
     return JsonResponse({'labels': labels, 'data': data})

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% load form_tags %}
+{% block title %}{{ title }} · HBS{% endblock %}
+
+{% block content %}
+<div class="hbs-pagehead">
+    <div>
+        <h1>{{ title }}</h1>
+        <p class="hbs-pagehead__sub">{% if object %}{{ object.name }}{% else %}Aggiungi una voce al listino{% endif %}</p>
+    </div>
+    <div class="hbs-pagehead__actions">
+        <a href="{% url 'members:package_list' %}" class="hbs-btn hbs-btn--ghost"><i class="ti ti-arrow-left"></i> Listino</a>
+    </div>
+</div>
+
+<div class="hbs-card" style="max-width:560px;">
+    <form method="post" class="hbs-form">
+        {% csrf_token %}
+        {% for field in form %}
+            {% if field.field.widget.input_type == 'checkbox' %}
+                <div class="hbs-field">
+                    <label class="hbs-switch">
+                        <input type="checkbox" name="{{ field.name }}" id="{{ field.id_for_label }}" {% if field.value %}checked{% endif %}>
+                        <span class="hbs-switch__track"></span>
+                        <span class="hbs-switch__label">{{ field.label }}</span>
+                    </label>
+                </div>
+            {% else %}
+                <div class="hbs-field">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field|add_class:"form-control" }}
+                </div>
+            {% endif %}
+            {% if field.errors %}<ul class="errorlist">{% for e in field.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+        {% endfor %}
+        <div class="d-flex" style="gap:8px; margin-top:4px;">
+            <button type="submit" class="hbs-btn hbs-btn--primary"><i class="ti ti-device-floppy"></i> Salva</button>
+            <a href="{% url 'members:package_list' %}" class="hbs-btn hbs-btn--ghost">Annulla</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

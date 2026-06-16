@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% load form_tags %}
+{% block title %}{{ title }} · Harmony Body System{% endblock %}
+
+{% block content %}
+<div class="hbs-pagehead">
+    <div>
+        <h1>{{ title }}</h1>
+        <p class="hbs-pagehead__sub">{% if object %}{{ object }}{% else %}Aggiungi un insegnante tecnico{% endif %}</p>
+    </div>
+    <div class="hbs-pagehead__actions">
+        <a href="{% url 'members:instructor_list' %}" class="hbs-btn hbs-btn--ghost"><i class="ti ti-arrow-left"></i> Insegnanti</a>
+    </div>
+</div>
+
+<div class="hbs-card" style="max-width:560px;">
+    <form method="post" class="hbs-form">
+        {% csrf_token %}
+        {% for field in form %}
+            <div class="hbs-field">
+                <div class="hbs-field{% if field.field.widget.input_type == 'checkbox' %} hbs-field--check{% endif %}">
+                {% if field.name == 'sectors' %}
+                    <div style="display:flex; flex-wrap:wrap; gap:8px 18px; padding:6px 0;">{{ field }}</div>
+                {% else %}
+                    {{ field|add_class:"form-control" }}
+                {% endif %}
+                {% if field.errors %}<ul class="errorlist">{% for e in field.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+            </div>
+        {% endfor %}
+        <div class="d-flex" style="gap:8px; margin-top:4px;">
+            <button type="submit" class="hbs-btn hbs-btn--primary"><i class="ti ti-device-floppy"></i> Salva</button>
+            <a href="{% url 'members:instructor_list' %}" class="hbs-btn hbs-btn--ghost">Annulla</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

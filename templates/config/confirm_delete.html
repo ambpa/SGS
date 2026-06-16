@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Conferma eliminazione · Harmony Body System{% endblock %}
+
+{% block content %}
+<div class="hbs-pagehead">
+    <div>
+        <h1>Conferma eliminazione</h1>
+        <p class="hbs-pagehead__sub">Operazione non reversibile</p>
+    </div>
+</div>
+
+<div class="hbs-card" style="max-width:520px;">
+    <div class="hbs-alert hbs-alert--warning">
+        <i class="ti ti-alert-triangle"></i>
+        <span>Stai per eliminare il {{ object_type }} <strong>«{{ object }}»</strong>. Vuoi procedere?</span>
+    </div>
+    <form method="post" class="hbs-form">
+        {% csrf_token %}
+        <div class="d-flex" style="gap:8px;">
+            <button type="submit" class="hbs-btn hbs-btn--danger"><i class="ti ti-trash"></i> Elimina definitivamente</button>
+            <a href="{% url cancel_url %}" class="hbs-btn hbs-btn--ghost">Annulla</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

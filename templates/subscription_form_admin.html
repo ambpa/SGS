@@ -1,105 +1,41 @@
 {% extends "base.html" %}
-{% block title %}Aggiungi Abbonamento | SuperGym{% endblock %}
+{% load static %}
+{% load form_tags %}
 
-{% load widget_tweaks %}
+{% block title %}Nuovo abbonamento · HBS{% endblock %}
 
 {% block content %}
-<div class="container mt-5">
-
-    <!-- Titolo -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h3">💳 Aggiungi Abbonamento a un Socio</h1>
-        <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">⬅ Torna alla Dashboard</a>
+<div class="hbs-pagehead">
+    <div>
+        <h1>Nuovo abbonamento</h1>
+        <p class="hbs-pagehead__sub">Scegli il socio e i dettagli dell'abbonamento</p>
     </div>
-
-    <!-- Form Abbonamento -->
-    <div class="card shadow p-4">
-        <form method="post">
-            {% csrf_token %}
-
-            <!-- Selezione socio -->
-            <div class="mb-3">
-                <label for="member" class="form-label">Seleziona Socio</label>
-                <select name="member" id="member" class="form-select" required>
-                    <option value="">-- Seleziona un socio --</option>
-                    {% for m in members %}
-                        <option value="{{ m.id }}">{{ m.last_name }} {{ m.first_name }} ({{ m.username }})</option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <!-- Campi abbonamento -->
-            <div class="row g-3">
-                {% for field in form %}
-                    <div class="col-md-6">
-                        <label class="form-label">{{ field.label }}</label>
-                        {{ field|add_class:"form-control" }}
-                        {% if field.help_text %}
-                            <small class="form-text text-muted">{{ field.help_text }}</small>
-                        {% endif %}
-                        {% for error in field.errors %}
-                            <div class="text-danger small">{{ error }}</div>
-                        {% endfor %}
-                    </div>
-                {% endfor %}
-                <!-- Mostra data fine calcolata -->
-                <div class="col-md-6">
-                    <label class="form-label">Data Fine (calcolata automaticamente)</label>
-                    <input type="text" id="calculated_end_date" class="form-control" readonly>
-                </div>
-            </div>
-
-            <!-- Bottoni -->
-            <div class="mt-4 d-flex gap-2">
-                <button type="submit" class="btn btn-success">💾 Salva Abbonamento</button>
-                <a href="{% url 'dashboard' %}" class="btn btn-secondary">❌ Annulla</a>
-            </div>
-
-        </form>
+    <div class="hbs-pagehead__actions">
+        <a href="{% url 'members:subscription_status' %}" class="hbs-btn hbs-btn--ghost"><i class="ti ti-arrow-left"></i> Indietro</a>
     </div>
 </div>
 
-<script>
-document.addEventListener("DOMContentLoaded", function() {
-    const startDateInput = document.querySelector("input[name='start_date']");
-    const subscriptionType = document.querySelector("select[name='subscription_type']");
-    const endDateDisplay = document.getElementById("calculated_end_date");
-
-    function calculateEndDate() {
-        const startDateValue = startDateInput.value;
-        const typeValue = subscriptionType.value;
-
-        if (!startDateValue || !typeValue) {
-            endDateDisplay.value = "";
-            return;
-        }
-
-        const startDate = new Date(startDateValue);
-        let endDate = new Date(startDate);
-
-        switch (typeValue) {
-            case "ANNUAL":
-                endDate.setFullYear(endDate.getFullYear() + 1);
-                break;
-            case "SEMESTRAL":
-                endDate.setMonth(endDate.getMonth() + 6);
-                break;
-            case "MONTHLY":
-                endDate.setMonth(endDate.getMonth() + 1);
-                break;
-        }
-
-        // Mantiene la stessa data (es: 10/10 → 10/10 dell'anno successivo)
-        const day = String(endDate.getDate()).padStart(2, '0');
-        const month = String(endDate.getMonth() + 1).padStart(2, '0');
-        const year = endDate.getFullYear();
-
-        endDateDisplay.value = `${day}/${month}/${year}`;
-    }
-
-    startDateInput.addEventListener("change", calculateEndDate);
-    subscriptionType.addEventListener("change", calculateEndDate);
-});
-</script>
-
+<div class="hbs-card" style="max-width:560px;">
+    <div class="hbs-card__title"><i class="ti ti-calendar-plus"></i> Dati abbonamento</div>
+    <form method="post" class="hbs-form">
+        {% csrf_token %}
+        <div class="hbs-field">
+            <label for="member-select">Socio</label>
+            <select name="member" id="member-select" class="form-select" required>
+                <option value="">— Seleziona socio —</option>
+                {% for m in members %}
+                    <option value="{{ m.id }}">{{ m.get_full_name|default:m.username }}{% if m.card_number %} ({{ m.card_number }}){% endif %}</option>
+                {% endfor %}
+            </select>
+        </div>
+        {% for field in form %}
+            <div class="hbs-field">
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field|add_class:"form-control" }}
+                {% if field.errors %}<ul class="errorlist">{% for e in field.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+            </div>
+        {% endfor %}
+        <button type="submit" class="hbs-btn hbs-btn--primary"><i class="ti ti-device-floppy"></i> Salva abbonamento</button>
+    </form>
+</div>
 {% endblock %}

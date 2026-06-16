@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% load static %}
+{% load form_tags %}
+
+{% block title %}Il mio profilo · Harmony Body System{% endblock %}
+
+{% block content %}
+<div class="hbs-pagehead">
+    <div class="d-flex align-items-center" style="gap:14px;">
+        <span class="hbs-avatar" style="width:48px; height:48px; font-size:16px;">{{ user.first_name|first|upper }}{{ user.last_name|first|upper }}</span>
+        <div>
+            <h1>{{ user.get_full_name|default:user.username }}</h1>
+            <p class="hbs-pagehead__sub">{{ user.email }}</p>
+        </div>
+    </div>
+</div>
+
+{% if messages %}
+    {% for m in messages %}
+        <div class="hbs-alert hbs-alert--{{ m.tags|default:'info' }}">
+            <i class="ti ti-info-circle"></i><span>{{ m.message }}</span>
+        </div>
+    {% endfor %}
+{% endif %}
+
+<div class="row g-3">
+    <div class="col-lg-7">
+        <div class="hbs-card">
+            <div class="hbs-card__title"><i class="ti ti-id-badge-2"></i> I miei abbonamenti</div>
+            {% if subscriptions_list %}
+                <table class="hbs-table">
+                    <thead><tr><th>Settore</th><th>Tipo</th><th>Scadenza</th><th>Stato</th></tr></thead>
+                    <tbody>
+                        {% for item in subscriptions_list %}
+                        <tr>
+                            <td class="hbs-table__name">{% if item.subscription.sector %}{{ item.subscription.sector.name }}{% else %}—{% endif %}</td>
+                            <td>{{ item.subscription.get_subscription_type_display }}</td>
+                            <td>{{ item.subscription.end_date|date:"d/m/Y"|default:"—" }}</td>
+                            <td>
+                                {% if item.status == "Attivo" %}<span class="hbs-badge hbs-badge--ok">Attivo</span>
+                                {% elif item.status == "Scaduto" %}<span class="hbs-badge hbs-badge--danger">Scaduto</span>
+                                {% else %}<span class="hbs-badge hbs-badge--warn">{{ item.status }}</span>{% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="hbs-empty" style="padding:28px;"><i class="ti ti-calendar-off"></i><p>Nessun abbonamento registrato.</p></div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="hbs-card">
+            <div class="hbs-card__title"><i class="ti ti-key"></i> Cambia password</div>
+            <form method="post" class="hbs-form">
+                {% csrf_token %}
+                {% for field in password_form %}
+                    <div class="hbs-field">
+                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field|add_class:"form-control" }}
+                        {% if field.help_text %}<span class="helptext">{{ field.help_text|safe }}</span>{% endif %}
+                        {% if field.errors %}<ul class="errorlist">{% for e in field.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+                    </div>
+                {% endfor %}
+                <button type="submit" class="hbs-btn hbs-btn--primary"><i class="ti ti-check"></i> Aggiorna</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Settori · Harmony Body System{% endblock %}
+
+{% block content %}
+<div class="hbs-pagehead">
+    <div>
+        <h1>Settori / Discipline</h1>
+        <p class="hbs-pagehead__sub">Le discipline offerte dalla struttura</p>
+    </div>
+    <div class="hbs-pagehead__actions">
+        <a href="{% url 'members:config_home' %}" class="hbs-btn hbs-btn--ghost"><i class="ti ti-arrow-left"></i> Configurazione</a>
+        <a href="{% url 'members:sector_add' %}" class="hbs-btn hbs-btn--primary"><i class="ti ti-plus"></i> Nuovo settore</a>
+    </div>
+</div>
+
+<div class="hbs-card">
+    {% if sectors %}
+    <table class="hbs-table">
+        <thead><tr><th>Settore</th><th>Stato</th><th style="text-align:right;">Azioni</th></tr></thead>
+        <tbody>
+            {% for s in sectors %}
+            <tr>
+                <td class="hbs-table__name">{{ s.name }}</td>
+                <td>
+                    {% if s.is_active %}<span class="hbs-badge hbs-badge--ok"><i class="ti ti-circle-check"></i> Attivo</span>
+                    {% else %}<span class="hbs-badge hbs-badge--muted">Non attivo</span>{% endif %}
+                </td>
+                <td style="text-align:right;">
+                    <a href="{% url 'members:sector_edit' s.pk %}" class="hbs-btn hbs-btn--ghost hbs-btn--sm"><i class="ti ti-edit"></i> Modifica</a>
+                    <a href="{% url 'members:sector_delete' s.pk %}" class="hbs-btn hbs-btn--danger hbs-btn--sm"><i class="ti ti-trash"></i></a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="hbs-empty">
+        <i class="ti ti-category"></i>
+        <p>Nessun settore configurato.<br>Crea il primo per poter gestire gli abbonamenti.</p>
+        <a href="{% url 'members:sector_add' %}" class="hbs-btn hbs-btn--primary"><i class="ti ti-plus"></i> Nuovo settore</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

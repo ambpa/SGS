@@ -1,35 +1,48 @@
-<!-- templates/registration/login.html -->
 {% extends "base.html" %}
-{% block title %}Login | SuperGym{% endblock %}
+{% load static %}
 
+{% block title %}Accedi · Harmony Body System{% endblock %}
 
-{% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-4">
-        <div class="card shadow-sm">
-            <div class="card-body">
-                <h3 class="text-center mb-4">Accedi</h3>
+{% block fullscreen %}
+<div style="min-height:100vh; display:flex; align-items:center; justify-content:center; background:var(--hbs-green-900); padding:20px;">
+    <div style="width:100%; max-width:400px;">
 
-                {% if form.errors %}
-                    <div class="alert alert-danger">
-                        Username o password non validi.
-                    </div>
-                {% endif %}
-
-                <form method="post" action="{% url 'login' %}">
-                    {% csrf_token %}
-                    <div class="mb-3">
-                        <label class="form-label">Username</label>
-                        <input type="text" name="username" class="form-control" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Password</label>
-                        <input type="password" name="password" class="form-control" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary w-100">Login</button>
-                </form>
-            </div>
+        <div style="text-align:center; margin-bottom:24px;">
+            <div style="width:60px; height:60px; border-radius:14px; background:var(--hbs-green-400); color:var(--hbs-green-900); display:inline-flex; align-items:center; justify-content:center; font-weight:700; font-size:22px;">HBS</div>
+            <h1 style="color:#fff; font-size:20px; font-weight:600; margin:14px 0 2px;">Harmony Body System</h1>
+            <p style="color:var(--hbs-green-400); font-size:13px; margin:0;">A.S.D. — La tua palestra</p>
         </div>
+
+        <div class="hbs-card" style="padding:24px;">
+            <h2 style="font-size:17px; font-weight:600; margin:0 0 18px;">Accedi al gestionale</h2>
+
+            {% if form.errors %}
+                <div class="hbs-alert hbs-alert--danger">
+                    <i class="ti ti-alert-circle"></i>
+                    <span>Username o password non corretti. Riprova.</span>
+                </div>
+            {% endif %}
+
+            <form method="post" class="hbs-form">
+                {% csrf_token %}
+                <div class="hbs-field">
+                    <label for="{{ form.username.id_for_label }}">Username</label>
+                    {{ form.username }}
+                </div>
+                <div class="hbs-field">
+                    <label for="{{ form.password.id_for_label }}">Password</label>
+                    {{ form.password }}
+                </div>
+                <button type="submit" class="hbs-btn hbs-btn--primary" style="width:100%; justify-content:center; margin-top:4px;">
+                    <i class="ti ti-login-2"></i> Accedi
+                </button>
+                <input type="hidden" name="next" value="{{ next }}">
+            </form>
+        </div>
+
+        <p style="text-align:center; color:var(--hbs-green-400); font-size:12px; margin-top:18px;">
+            Accesso riservato a soci e personale
+        </p>
     </div>
 </div>
 {% endblock %}

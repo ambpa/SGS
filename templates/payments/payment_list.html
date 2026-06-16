@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Pagamenti di {{ member.get_full_name }} · HBS{% endblock %}
+
+{% block content %}
+<div class="hbs-pagehead">
+    <div class="d-flex align-items-center" style="gap:14px;">
+        <span class="hbs-avatar" style="width:44px; height:44px; font-size:15px;">{{ member.first_name|first|upper }}{{ member.last_name|first|upper }}</span>
+        <div>
+            <h1>Pagamenti</h1>
+            <p class="hbs-pagehead__sub">{{ member.get_full_name|default:member.username }}{% if member.card_number %} · {{ member.card_number }}{% endif %}</p>
+        </div>
+    </div>
+    <div class="hbs-pagehead__actions">
+        <a href="{% url 'members:payment_add' member.id %}" class="hbs-btn hbs-btn--primary"><i class="ti ti-plus"></i> Nuovo pagamento</a>
+        <a href="{% url 'members:edit_member' member.id %}" class="hbs-btn hbs-btn--ghost"><i class="ti ti-arrow-left"></i> Scheda socio</a>
+    </div>
+</div>
+
+<div class="hbs-metrics" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));">
+    <div class="hbs-metric">
+        <div class="hbs-metric__icon"><i class="ti ti-cash"></i></div>
+        <div class="hbs-metric__label">Totale incassato</div>
+        <div class="hbs-metric__value hbs-metric__value--ok">€ {{ total_paid|floatformat:2 }}</div>
+    </div>
+    <div class="hbs-metric">
+        <div class="hbs-metric__icon"><i class="ti ti-clock-exclamation"></i></div>
+        <div class="hbs-metric__label">Da incassare</div>
+        <div class="hbs-metric__value hbs-metric__value--warn">€ {{ total_due|floatformat:2 }}</div>
+    </div>
+</div>
+
+<div class="hbs-card">
+    {% if payments %}
+    <div style="overflow-x:auto;">
+        <table class="hbs-table">
+            <thead>
+                <tr>
+                    <th>Tipo</th><th>Pagamento</th><th>Scadenza</th><th>Prossima</th>
+                    <th style="text-align:right;">Quota</th><th>Mod.</th><th>Stato</th><th style="text-align:right;">Azioni</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in payments %}
+                <tr>
+                    <td class="hbs-table__name">{{ p.get_payment_type_display }}</td>
+                    <td>{{ p.payment_date|date:"d/m/Y"|default:"—" }}</td>
+                    <td {% if p.is_overdue %}style="color:var(--hbs-danger-fg); font-weight:500;"{% endif %}>{{ p.due_date|date:"d/m/Y"|default:"—" }}</td>
+                    <td class="hbs-table__sub">{{ p.next_due_date|date:"d/m/Y"|default:"—" }}</td>
+                    <td style="text-align:right;">€ {{ p.net_amount|floatformat:2 }}{% if p.discount %} <span class="hbs-table__sub">(-{{ p.discount|floatformat:0 }})</span>{% endif %}</td>
+                    <td>{{ p.get_payment_mode_display|default:"—" }}</td>
+                    <td>
+                        {% if p.is_paid %}<span class="hbs-badge hbs-badge--ok"><i class="ti ti-circle-check"></i> Pagato</span>
+                        {% elif p.is_overdue %}<span class="hbs-badge hbs-badge--danger"><i class="ti ti-alert-circle"></i> Insoluto</span>
+                        {% else %}<span class="hbs-badge hbs-badge--warn"><i class="ti ti-clock"></i> Da pagare</span>{% endif %}
+                    </td>
+                    <td style="text-align:right; white-space:nowrap;">
+                        <form method="post" action="{% url 'members:payment_toggle_paid' p.pk %}" style="display:inline; margin:0;">
+                            {% csrf_token %}
+                            <button type="submit" class="hbs-btn hbs-btn--ghost hbs-btn--sm" title="Cambia stato">
+                                <i class="ti {% if p.is_paid %}ti-arrow-back-up{% else %}ti-check{% endif %}"></i>
+                            </button>
+                        </form>
+                        <a href="{% url 'members:payment_edit' p.pk %}" class="hbs-btn hbs-btn--ghost hbs-btn--sm"><i class="ti ti-edit"></i></a>
+                        <a href="{% url 'members:payment_delete' p.pk %}" class="hbs-btn hbs-btn--danger hbs-btn--sm"><i class="ti ti-trash"></i></a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="hbs-empty">
+        <i class="ti ti-receipt-off"></i>
+        <p>Nessun pagamento registrato per questo socio.</p>
+        <a href="{% url 'members:payment_add' member.id %}" class="hbs-btn hbs-btn--primary"><i class="ti ti-plus"></i> Registra il primo pagamento</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,49 +1,46 @@
-<!-- templates/subscription_list.html -->
 {% extends "base.html" %}
-{% block title %}Abbonamenti di {{ member.first_name }} | SuperGym{% endblock %}
+{% load static %}
+
+{% block title %}Abbonamenti di {{ member.get_full_name }} · HBS{% endblock %}
 
 {% block content %}
-<div class="container mt-5">
-    <h1>Abbonamenti di {{ member.first_name }} {{ member.last_name }}</h1>
-    <a href="{% url 'members:add_subscription' member.id %}" class="btn btn-primary mb-3">Aggiungi abbonamento</a>
-
-    <div class="table-responsive">
-        <table class="table table-striped table-hover">
-            <thead class="table-dark">
-                <tr>
-                    <th>#</th>
-                    <th>Tipologia</th>
-                    <th>Categoria</th>
-                    <th>Inizio</th>
-                    <th>Fine</th>
-                    <th>Stato</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for sub in subscriptions %}
-                <tr>
-                    <td>{{ forloop.counter }}</td>
-                    <td>{{ sub.get_subscription_type_display }}</td>
-                    <td>{{ sub.get_category_display }}</td>
-                    <td>{{ sub.start_date }}</td>
-                    <td>{{ sub.end_date }}</td>
-                    <td>
-                        {% if sub.status == "Attivo" %}
-                            <span class="badge bg-success">{{ sub.status }}</span>
-                        {% elif sub.status == "Non ancora attivo" %}
-                            <span class="badge bg-secondary">{{ sub.status }}</span>
-                        {% else %}
-                            <span class="badge bg-danger">{{ sub.status }}</span>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="6" class="text-center">Nessun abbonamento trovato.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+<div class="hbs-pagehead">
+    <div class="d-flex align-items-center" style="gap:14px;">
+        <span class="hbs-avatar" style="width:44px; height:44px; font-size:15px;">{{ member.first_name|first|upper }}{{ member.last_name|first|upper }}</span>
+        <div>
+            <h1>Abbonamenti</h1>
+            <p class="hbs-pagehead__sub">{{ member.get_full_name|default:member.username }}</p>
+        </div>
     </div>
+    <div class="hbs-pagehead__actions">
+        <a href="{% url 'members:add_subscription' member.id %}" class="hbs-btn hbs-btn--primary"><i class="ti ti-plus"></i> Aggiungi</a>
+        <a href="{% url 'members:edit_member' member.id %}" class="hbs-btn hbs-btn--ghost"><i class="ti ti-arrow-left"></i> Socio</a>
+    </div>
+</div>
+
+<div class="hbs-card">
+    {% if subscriptions %}
+    <table class="hbs-table">
+        <thead><tr><th>Settore</th><th>Tipo</th><th>Inizio</th><th>Scadenza</th><th>Stato</th></tr></thead>
+        <tbody>
+            {% for sub in subscriptions %}
+            <tr>
+                <td class="hbs-table__name">{% if sub.sector %}{{ sub.sector.name }}{% else %}—{% endif %}</td>
+                <td>{{ sub.get_subscription_type_display }}</td>
+                <td>{{ sub.start_date|date:"d/m/Y" }}</td>
+                <td>{{ sub.end_date|date:"d/m/Y"|default:"—" }}</td>
+                <td>
+                    {% if sub.status == "Attivo" %}<span class="hbs-badge hbs-badge--ok">Attivo</span>
+                    {% elif sub.status == "Scaduto" %}<span class="hbs-badge hbs-badge--danger">Scaduto</span>
+                    {% else %}<span class="hbs-badge hbs-badge--warn">{{ sub.status }}</span>{% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+        <div class="hbs-empty"><i class="ti ti-calendar-off"></i><p>Nessun abbonamento per questo socio.</p>
+        <a href="{% url 'members:add_subscription' member.id %}" class="hbs-btn hbs-btn--primary"><i class="ti ti-plus"></i> Aggiungi abbonamento</a></div>
+    {% endif %}
 </div>
 {% endblock %}

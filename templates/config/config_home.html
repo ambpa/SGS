@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Configurazione · Harmony Body System{% endblock %}
+
+{% block content %}
+<div class="hbs-pagehead">
+    <div>
+        <h1>Configurazione</h1>
+        <p class="hbs-pagehead__sub">Gestisci settori, insegnanti e listino pacchetti</p>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-4">
+        <div class="hbs-card" style="height:100%;">
+            <div class="hbs-card__title"><i class="ti ti-category"></i> Settori / Discipline</div>
+            <p style="font-size:14px; color:var(--hbs-text-soft);">Le discipline offerte (Fitness, Sala pesi, Karate). Base per pacchetti e abbonamenti.</p>
+            <div class="d-flex align-items-baseline" style="gap:8px; margin:10px 0 16px;">
+                <span style="font-size:30px; font-weight:600; color:var(--hbs-green-700);">{{ sector_count }}</span>
+                <span style="font-size:13px; color:var(--hbs-text-soft);">settori</span>
+            </div>
+            <a href="{% url 'members:sector_list' %}" class="hbs-btn hbs-btn--primary" style="width:100%; justify-content:center;"><i class="ti ti-settings"></i> Gestisci</a>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="hbs-card" style="height:100%;">
+            <div class="hbs-card__title"><i class="ti ti-user-star"></i> Insegnanti</div>
+            <p style="font-size:14px; color:var(--hbs-text-soft);">Gli insegnanti tecnici e i settori che seguono.</p>
+            <div class="d-flex align-items-baseline" style="gap:8px; margin:10px 0 16px;">
+                <span style="font-size:30px; font-weight:600; color:var(--hbs-green-700);">{{ instructor_count }}</span>
+                <span style="font-size:13px; color:var(--hbs-text-soft);">insegnanti</span>
+            </div>
+            <a href="{% url 'members:instructor_list' %}" class="hbs-btn hbs-btn--primary" style="width:100%; justify-content:center;"><i class="ti ti-settings"></i> Gestisci</a>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="hbs-card" style="height:100%;">
+            <div class="hbs-card__title"><i class="ti ti-package"></i> Listino pacchetti</div>
+            <p style="font-size:14px; color:var(--hbs-text-soft);">I pacchetti vendibili (es. «Trimestrale Fitness» 120€), per settore e tipo.</p>
+            <div class="d-flex align-items-baseline" style="gap:8px; margin:10px 0 16px;">
+                <span style="font-size:30px; font-weight:600; color:var(--hbs-green-700);">{{ package_count }}</span>
+                <span style="font-size:13px; color:var(--hbs-text-soft);">pacchetti</span>
+            </div>
+            <a href="{% url 'members:package_list' %}" class="hbs-btn hbs-btn--primary" style="width:100%; justify-content:center;"><i class="ti ti-settings"></i> Gestisci</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -5,7 +5,8 @@ from .models import Member, MemberDocument
 # Importiamo i nostri nuovi form personalizzati
 from .forms import MemberCreationForm, MemberChangeForm
 from .models import Subscription  # Assumendo che Subscription sia nel file models.py
-
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from .models import Sector, SportsBody, Instructor
 
 class MemberDocumentInline(admin.TabularInline):
     """
@@ -18,33 +19,28 @@ class MemberDocumentInline(admin.TabularInline):
 
 
 @admin.register(Member)
-class MemberAdmin(UserAdmin):
-    """
-    Personalizzazione della vista Admin per il modello Member.
-    """
-    # Diciamo a Django di usare i nostri form personalizzati
-    form = MemberChangeForm
+class MemberAdmin(BaseUserAdmin):
     add_form = MemberCreationForm
-
+    form = MemberChangeForm
     model = Member
-    list_display = ('username', 'email', 'first_name', 'last_name', 'is_staff')
 
-    # Organizzazione dei campi per la pagina di MODIFICA di un socio esistente
-    # MODIFICA CHIAVE: Rimuoviamo il campo 'password' da qui!
-    fieldsets = (
-        (None, {'fields': ('username', 'password')}),  # aggiunto 'password'
-        ('Informazioni Personali', {'fields': ('first_name', 'last_name', 'email')}),
-        ('Dati Anagrafici Aggiuntivi', {'fields': ('date_of_birth', 'phone_number', 'address')}),
-        ('Permessi', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
-        ('Date Importanti', {'fields': ('last_login', 'date_joined')}),
+    list_display = ("username", "first_name", "last_name", "role", "is_staff", "is_active")
+    list_filter = ("role", "is_staff", "is_active")
+    search_fields = ("username", "first_name", "last_name", "email", "card_number")
+    ordering = ("last_name", "first_name")
+
+    # Campi mostrati in MODIFICA (utente esistente)
+    fieldsets = BaseUserAdmin.fieldsets + (
+        ("Ruolo e dati associazione", {
+            "fields": ("role", "card_number", "sector", "instructor"),
+        }),
     )
 
-    # Organizzazione dei campi per la pagina di CREAZIONE di un nuovo socio.
-    # Questa sezione è corretta e non va toccata.
+    # Campi mostrati in CREAZIONE ("Aggiungi") — include i due campi password
     add_fieldsets = (
         (None, {
-            'classes': ('wide',),
-            'fields': ('username', 'first_name', 'last_name', 'email', 'password1', 'password2'),
+            "classes": ("wide",),
+            "fields": ("username", "password1", "password2", "role", "first_name", "last_name", "email"),
         }),
     )
 
@@ -64,8 +60,8 @@ class MemberDocumentAdmin(admin.ModelAdmin):
 
 @admin.register(Subscription)
 class SubscriptionAdmin(admin.ModelAdmin):
-    list_display = ('member', 'subscription_type', 'category', 'start_date', 'end_date', 'status_badge')
-    list_filter = ('subscription_type', 'category')
+    list_display = ('member', 'subscription_type', 'sector', 'start_date', 'end_date', 'status_badge')
+    list_filter = ('subscription_type', 'sector')
     search_fields = ('member__first_name', 'member__last_name', 'member__email')
 
     # Mostra lo stato con badge colorato
@@ -91,3 +87,25 @@ class SubscriptionAdmin(admin.ModelAdmin):
         )
 
     status_badge.short_description = 'Stato'
+
+
+@admin.register(Sector)
+class SectorAdmin(admin.ModelAdmin):
+    list_display = ('name', 'is_active')
+    list_filter = ('is_active',)
+    search_fields = ('name',)
+
+
+@admin.register(SportsBody)
+class SportsBodyAdmin(admin.ModelAdmin):
+    list_display = ('name', 'code', 'is_active')
+    list_filter = ('is_active',)
+    search_fields = ('name', 'code')
+
+
+@admin.register(Instructor)
+class InstructorAdmin(admin.ModelAdmin):
+    list_display = ('last_name', 'first_name', 'is_active')
+    list_filter = ('is_active',)
+    search_fields = ('first_name', 'last_name')
+    filter_horizontal = ('sectors',)

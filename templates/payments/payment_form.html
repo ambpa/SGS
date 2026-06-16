@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% load form_tags %}
+{% block title %}{{ title }} · HBS{% endblock %}
+
+{% block content %}
+<div class="hbs-pagehead">
+    <div>
+        <h1>{{ title }}</h1>
+        <p class="hbs-pagehead__sub">{{ member.get_full_name|default:member.username }}</p>
+    </div>
+    <div class="hbs-pagehead__actions">
+        <a href="{% url 'members:payment_list' member.id %}" class="hbs-btn hbs-btn--ghost"><i class="ti ti-arrow-left"></i> Pagamenti</a>
+    </div>
+</div>
+
+<div class="hbs-card" style="max-width:640px;">
+    <form method="post" class="hbs-form">
+        {% csrf_token %}
+        <div class="hbs-grid-2">
+            {% for field in form %}
+<div class="hbs-field{% if field.field.widget.input_type == 'checkbox' %} hbs-field--check{% endif %}">                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field|add_class:"form-control" }}
+                    {% if field.errors %}<ul class="errorlist">{% for e in field.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+                </div>
+            {% endfor %}
+        </div>
+        <div class="hbs-alert hbs-alert--info"><i class="ti ti-info-circle"></i><span>La prossima scadenza viene calcolata in automatico dal tipo di rata.</span></div>
+        <div class="d-flex" style="gap:8px;">
+            <button type="submit" class="hbs-btn hbs-btn--primary"><i class="ti ti-device-floppy"></i> Salva pagamento</button>
+            <a href="{% url 'members:payment_list' member.id %}" class="hbs-btn hbs-btn--ghost">Annulla</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

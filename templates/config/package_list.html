@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Listino pacchetti · HBS{% endblock %}
+
+{% block content %}
+<div class="hbs-pagehead">
+    <div>
+        <h1>Listino pacchetti</h1>
+        <p class="hbs-pagehead__sub">I pacchetti vendibili, per settore e tipologia</p>
+    </div>
+    <div class="hbs-pagehead__actions">
+        <a href="{% url 'members:config_home' %}" class="hbs-btn hbs-btn--ghost"><i class="ti ti-arrow-left"></i> Configurazione</a>
+        <a href="{% url 'members:package_add' %}" class="hbs-btn hbs-btn--primary"><i class="ti ti-plus"></i> Nuovo pacchetto</a>
+    </div>
+</div>
+
+<div class="hbs-card">
+    {% if packages %}
+    <table class="hbs-table">
+        <thead><tr><th>Nome</th><th>Settore</th><th>Tipo</th><th style="text-align:right;">Prezzo</th><th>Stato</th><th style="text-align:right;">Azioni</th></tr></thead>
+        <tbody>
+            {% for p in packages %}
+            <tr>
+                <td class="hbs-table__name">{{ p.name }}</td>
+                <td>{{ p.sector.name }}</td>
+                <td>{{ p.get_package_type_display }}</td>
+                <td style="text-align:right;">€ {{ p.price|floatformat:2 }}</td>
+                <td>
+                    {% if p.is_active %}<span class="hbs-badge hbs-badge--ok"><i class="ti ti-circle-check"></i> Attivo</span>
+                    {% else %}<span class="hbs-badge hbs-badge--muted">Non attivo</span>{% endif %}
+                </td>
+                <td style="text-align:right; white-space:nowrap;">
+                    <a href="{% url 'members:package_edit' p.pk %}" class="hbs-btn hbs-btn--ghost hbs-btn--sm"><i class="ti ti-edit"></i> Modifica</a>
+                    <a href="{% url 'members:package_delete' p.pk %}" class="hbs-btn hbs-btn--danger hbs-btn--sm"><i class="ti ti-trash"></i></a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="hbs-empty">
+        <i class="ti ti-package"></i>
+        <p>Nessun pacchetto in listino.<br>Crea i pacchetti (es. «Trimestrale Fitness» 120€) da usare poi negli abbonamenti.</p>
+        <a href="{% url 'members:package_add' %}" class="hbs-btn hbs-btn--primary"><i class="ti ti-plus"></i> Nuovo pacchetto</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

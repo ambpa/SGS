@@ -1,48 +1,65 @@
 {% extends "base.html" %}
-{% load crispy_forms_tags %}
-{% block title %}Aggiungi Socio | SuperGym{% endblock %}
+{% load static %}
+{% load form_tags %}
+
+{% block title %}Nuovo socio · Harmony Body System{% endblock %}
 
 {% block content %}
-<div class="container mt-5">
-    <h1 class="h3">Aggiungi Nuovo Socio con Documenti</h1>
-
-    <div class="row justify-content-center">
-        <div class="col-md-8 col-sm-12">
-            <div class="card shadow-sm">
-                <div class="card-body">
-
-                    {% if messages %}
-                        {% for message in messages %}
-                            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
-                        {% endfor %}
-                    {% endif %}
-
-                    <form method="post" enctype="multipart/form-data">
-                        {% csrf_token %}
-
-                        <!-- Sezione dati socio -->
-                        <h4 class="mb-3">Dati Socio</h4>
-                        {{ member_form|crispy }}
-
-                        <hr>
-
-                        <!-- Sezione documenti -->
-                        <h4 class="mb-3">Documenti Socio</h4>
-                        {{ document_formset.management_form }}
-                        {% for form in document_formset %}
-                            <div class="mb-3 border p-3 rounded">
-                                {{ form|crispy }}
-                            </div>
-                        {% endfor %}
-
-                        <button type="submit" class="btn btn-primary w-100 mt-3">
-                            Crea Socio e Documenti
-                        </button>
-                    </form>
-
-                </div>
-            </div>
-        </div>
+<div class="hbs-pagehead">
+    <div>
+        <h1>Nuovo socio</h1>
+        <p class="hbs-pagehead__sub">Compila l'anagrafica e, se vuoi, allega subito i documenti</p>
+    </div>
+    <div class="hbs-pagehead__actions">
+        <a href="{% url 'dashboard' %}" class="hbs-btn hbs-btn--ghost"><i class="ti ti-arrow-left"></i> Torna ai soci</a>
     </div>
 </div>
+
+<form method="post" enctype="multipart/form-data" class="hbs-form">
+    {% csrf_token %}
+
+    <div class="hbs-card" style="margin-bottom:16px;">
+        <div class="hbs-card__title"><i class="ti ti-user"></i> Dati del socio</div>
+
+        {% if member_form.non_field_errors %}
+            <div class="hbs-alert hbs-alert--danger"><i class="ti ti-alert-circle"></i><span>{{ member_form.non_field_errors }}</span></div>
+        {% endif %}
+
+        <div class="hbs-grid-2">
+            {% for field in member_form %}
+                <div class="hbs-field">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field|add_class:"form-control" }}
+                    {% if field.help_text %}<span class="helptext">{{ field.help_text|safe }}</span>{% endif %}
+                    {% if field.errors %}<ul class="errorlist">{% for e in field.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="hbs-card" style="margin-bottom:16px;">
+        <div class="hbs-card__title"><i class="ti ti-files"></i> Documenti (facoltativo)</div>
+
+        {{ document_formset.management_form }}
+        {% for form in document_formset %}
+            <div style="padding:14px; border:1px dashed var(--hbs-border); border-radius:var(--hbs-radius-sm); margin-bottom:12px;">
+                <div class="hbs-grid-2">
+                    {% for field in form.visible_fields %}
+                        <div class="hbs-field">
+                            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            {{ field|add_class:"form-control" }}
+                            {% if field.errors %}<ul class="errorlist">{% for e in field.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+                {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+            </div>
+        {% endfor %}
+    </div>
+
+    <div class="d-flex" style="gap:8px;">
+        <button type="submit" class="hbs-btn hbs-btn--primary"><i class="ti ti-device-floppy"></i> Salva socio</button>
+        <a href="{% url 'dashboard' %}" class="hbs-btn hbs-btn--ghost">Annulla</a>
+    </div>
+</form>
 {% endblock %}

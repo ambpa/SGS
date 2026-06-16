@@ -1,133 +1,134 @@
-<!DOCTYPE html>
 {% load static %}
+<!DOCTYPE html>
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>{% block title %}SuperGym{% endblock %}</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Harmony Body System{% endblock %}</title>
 
-    <!-- Bootstrap & Font -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-    <link href="{% static '/css/style.css' %}" rel="stylesheet">
+    <!-- Bootstrap 5.3 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Tabler Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.7.0/dist/tabler-icons.min.css">
+    <!-- Tema HBS (un solo file controlla tutto lo stile) -->
+    <link href="{% static 'css/theme.css' %}" rel="stylesheet">
+    {% block extra_css %}{% endblock %}
 </head>
-
 <body>
 
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-    <div class="container-fluid px-4">
-        <a class="navbar-brand d-flex align-items-center" href="{% url 'dashboard' %}">
-            🏋️‍♂️ <span class="ms-2">SuperGym</span>
+{% if user.is_authenticated %}
+<div class="hbs-shell">
+
+    <!-- ============ SIDEBAR ============ -->
+    <aside class="hbs-sidebar" id="hbsSidebar">
+        <a href="{% url 'dashboard' %}" class="hbs-brand">
+            <span class="hbs-brand__logo">HBS</span>
+            <span>
+                <span class="hbs-brand__name d-block">Harmony</span>
+                <span class="hbs-brand__sub">Body System</span>
+            </span>
         </a>
 
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent"
-                aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
+        <nav class="hbs-nav">
+            <a href="{% url 'dashboard' %}"
+               class="hbs-nav__link {% if active_nav == 'dashboard' %}is-active{% endif %}">
+                <i class="ti ti-layout-dashboard"></i> Dashboard
+            </a>
 
-        <div class="collapse navbar-collapse" id="navbarContent">
-            {% if user.is_authenticated %}
-
-            <!-- 🔹 MENU AMMINISTRATORE -->
             {% if user.is_staff or user.is_superuser %}
-            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                <!-- Soci -->
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" id="membersDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        👥 Soci
-                    </a>
-                    <ul class="dropdown-menu" aria-labelledby="membersDropdown">
-                        <li><a class="dropdown-item" href="{% url 'dashboard' %}">📋 Lista Soci</a></li>
-                        <li><a class="dropdown-item" href="{% url 'members:add_member' %}">➕ Aggiungi Socio</a></li>
-                    </ul>
-                </li>
+                <div class="hbs-nav__section">Gestione</div>
+                <a href="{% url 'dashboard' %}"
+                   class="hbs-nav__link {% if active_nav == 'members' %}is-active{% endif %}">
+                    <i class="ti ti-users"></i> Soci
+                </a>
+                <a href="{% url 'members:subscription_status' %}"
+                   class="hbs-nav__link {% if active_nav == 'subscriptions' %}is-active{% endif %}">
+                    <i class="ti ti-calendar-event"></i> Abbonamenti
+                </a>
+                <a href="{% url 'members:medical_certificate_status' %}"
+                   class="hbs-nav__link {% if active_nav == 'certificates' %}is-active{% endif %}">
+                    <i class="ti ti-stethoscope"></i> Certificati
+                </a>
 
-                <!-- Documenti -->
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" id="docsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        📄 Documenti
-                    </a>
-                    <ul class="dropdown-menu" aria-labelledby="docsDropdown">
-                        <li><a class="dropdown-item" href="{% url 'members:medical_certificate_status' %}">🩺 Certificati Medici</a></li>
-                        {% if user.is_superuser %}
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item text-primary" href="{% url 'members:add_document_admin' %}">➕ Aggiungi Documento</a></li>
-                        {% endif %}
-                    </ul>
-                </li>
-
-                <!-- Abbonamenti -->
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" id="subsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        💳 Abbonamenti
-                    </a>
-                    <ul class="dropdown-menu" aria-labelledby="subsDropdown">
-                        <li><a class="dropdown-item" href="{% url 'members:subscription_status' %}">📆 Stato Abbonamenti</a></li>
-                        <li><a class="dropdown-item" href="{% url 'members:add_subscription_admin' %}">➕ Aggiungi Abbonamento</a></li>
-                    </ul>
-                </li>
-            </ul>
-            {% else %}
-            <!-- 🔹 MENU CLIENTE -->
-            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'dashboard' %}">🏠 Dashboard</a>
-                </li>
-
-            </ul>
-            {% endif %}
-
-            <!-- 🔧 MENU UTENTE (comune) -->
-            <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-center">
-                <li class="nav-item me-2 text-white small">
-                    👋 Ciao, {{ user.first_name|default:user.username }}
-                </li>
-
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" id="systemDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        ⚙️
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="systemDropdown">
-                        <li><a class="dropdown-item" href="{% url 'members:profile' %}">👤 Profilo</a></li>
-                        <li><a class="dropdown-item" href="{% url 'members:change_own_password' %}">🔐 Cambia Password</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li>
-                            <form method="post" action="{% url 'logout' %}" class="d-inline">
-                                {% csrf_token %}
-                                <button type="submit" class="dropdown-item text-danger">🚪 Logout</button>
-                            </form>
-                        </li>
-                    </ul>
-                </li>
-            </ul>
+                <div class="hbs-nav__section">Amministrazione</div>
+                <a href="{% url 'members:config_home' %}"
+                   class="hbs-nav__link {% if active_nav == 'config' %}is-active{% endif %}">
+                    <i class="ti ti-settings"></i> Configurazione
+                </a>
+                <a href="{% url 'admin:index' %}" class="hbs-nav__link">
+                    <i class="ti ti-shield-lock"></i> Admin tecnico
+                </a>
 
             {% else %}
-            <!-- 🔹 Utente non loggato -->
-            <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'login' %}">Login</a>
-                </li>
-            </ul>
+                <div class="hbs-nav__section">Area personale</div>
+                <a href="{% url 'dashboard' %}"
+                   class="hbs-nav__link {% if active_nav == 'my_subscriptions' %}is-active{% endif %}">
+                    <i class="ti ti-id-badge-2"></i> I miei abbonamenti
+                </a>
+                <a href="{% url 'members:profile' %}"
+                   class="hbs-nav__link {% if active_nav == 'profile' %}is-active{% endif %}">
+                    <i class="ti ti-user"></i> Il mio profilo
+                </a>
             {% endif %}
+        </nav>
+
+        <div class="hbs-userbox">
+            <span class="hbs-userbox__avatar">{{ user.first_name|first|upper }}{{ user.last_name|first|upper }}</span>
+            <span>
+                <span class="hbs-userbox__name d-block">{{ user.get_full_name|default:user.username }}</span>
+                <form method="post" action="{% url 'logout' %}" style="margin:0;">
+                    {% csrf_token %}
+                    <button type="submit" class="hbs-userbox__link" style="background:none; border:none; padding:0; cursor:pointer;">
+                        <i class="ti ti-logout" style="font-size:12px;"></i> Esci
+                    </button>
+                </form>
+            </span>
         </div>
+    </aside>
+
+    <!-- backdrop per mobile -->
+    <div class="hbs-backdrop" id="hbsBackdrop" onclick="hbsToggleSidebar()"></div>
+
+    <!-- ============ CONTENUTO ============ -->
+    <div class="hbs-main">
+        <!-- barra mobile con hamburger -->
+        <div class="hbs-topbar-mobile">
+            <button type="button" onclick="hbsToggleSidebar()" aria-label="Apri menu">
+                <i class="ti ti-menu-2"></i>
+            </button>
+            <span style="font-weight:600;">Harmony Body System</span>
+        </div>
+
+        {% if messages %}
+            <div style="margin-bottom:6px;">
+            {% for message in messages %}
+                <div class="hbs-alert hbs-alert--{{ message.tags|default:'info' }}">
+                    <i class="ti
+                        {% if message.tags == 'success' %}ti-circle-check
+                        {% elif message.tags == 'danger' %}ti-alert-circle
+                        {% elif message.tags == 'warning' %}ti-alert-triangle
+                        {% else %}ti-info-circle{% endif %}"></i>
+                    <span>{{ message }}</span>
+                </div>
+            {% endfor %}
+            </div>
+        {% endif %}
+
+        {% block content %}{% endblock %}
     </div>
-</nav>
+</div>
+{% else %}
+    {# Pagine senza sidebar (es. login) #}
+    {% block fullscreen %}{% endblock %}
+{% endif %}
 
-<main class="container main-container">
-    {% block content %}
-
-        {% block extra_js %}{% endblock %}
-
-
-    {% endblock %}
-
-</main>
-
-<footer>
-    © {{ now|date:"Y" }} SuperGym — Tutti i diritti riservati
-</footer>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<script src="{% static 'js/script.js' %}"></script>
+<script>
+function hbsToggleSidebar() {
+    document.getElementById('hbsSidebar').classList.toggle('is-open');
+    document.getElementById('hbsBackdrop').classList.toggle('is-open');
+}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+{% block extra_js %}{% endblock %}
 </body>
 </html>

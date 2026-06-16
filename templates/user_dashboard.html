@@ -1,50 +1,63 @@
 {% extends "base.html" %}
-{% block title %}Area Utente | SuperGym{% endblock %}
+{% load static %}
+
+{% block title %}I miei abbonamenti · Harmony Body System{% endblock %}
 
 {% block content %}
-<div class="container mt-5">
-    <h1 class="mb-4">🏋️‍♂️ Benvenuto, {{ member.first_name }}!</h1>
-
-    <div class="card shadow mb-4">
-        <div class="card-body">
-            <h4 class="mb-3">📋 I tuoi abbonamenti</h4>
-            {% if subscriptions %}
-                <table class="table table-striped align-middle">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>Categoria</th>
-                            <th>Data Inizio</th>
-                            <th>Data Fine</th>
-                            <th>Stato</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for sub in subscriptions %}
-                        <tr>
-                            <td>{{ sub.category }}</td>
-                            <td>{{ sub.start_date|date:"d/m/Y" }}</td>
-                            <td>{{ sub.end_date|date:"d/m/Y" }}</td>
-                            <td>
-                                {% if sub.end_date >= today and sub.start_date <= today %}
-                                    <span class="badge bg-success">Attivo</span>
-                                {% elif sub.end_date >= today and sub.start_date >= today %}
-                                    <span class="badge bg-secondary">Da Attivare</span>
-                                {% else %}
-                                    <span class="badge bg-danger">Scaduto</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            {% else %}
-                <p>Nessun abbonamento registrato.</p>
-            {% endif %}
-        </div>
+<div class="hbs-pagehead">
+    <div>
+        <h1>Ciao, {{ member.first_name|default:member.username }}</h1>
+        <p class="hbs-pagehead__sub">I tuoi abbonamenti e le relative scadenze</p>
     </div>
-
-    <div class="text-center">
-        <a href="{% url 'members:profile' %}" class="btn btn-outline-primary">👤 Vai al tuo profilo</a>
+    <div class="hbs-pagehead__actions">
+        <a href="{% url 'members:profile' %}" class="hbs-btn hbs-btn--ghost">
+            <i class="ti ti-user"></i> Il mio profilo
+        </a>
     </div>
 </div>
+
+{% if subscriptions %}
+<div class="row g-3">
+    {% for sub in subscriptions %}
+    <div class="col-md-6 col-lg-4">
+        <div class="hbs-card" style="height:100%;">
+            <div class="d-flex justify-content-between align-items-start" style="margin-bottom:12px;">
+                <div>
+                    <div style="font-size:16px; font-weight:600;">
+                        {% if sub.sector %}{{ sub.sector.name }}{% else %}Abbonamento{% endif %}
+                    </div>
+                    <div style="font-size:13px; color:var(--hbs-text-soft);">{{ sub.get_subscription_type_display }}</div>
+                </div>
+                {% if sub.status == "Attivo" %}
+                    <span class="hbs-badge hbs-badge--ok"><i class="ti ti-circle-check"></i> Attivo</span>
+                {% elif sub.status == "Scaduto" %}
+                    <span class="hbs-badge hbs-badge--danger"><i class="ti ti-circle-x"></i> Scaduto</span>
+                {% else %}
+                    <span class="hbs-badge hbs-badge--warn"><i class="ti ti-clock"></i> {{ sub.status }}</span>
+                {% endif %}
+            </div>
+            <div style="border-top:1px solid var(--hbs-border); padding-top:12px; font-size:13.5px;">
+                <div class="d-flex justify-content-between" style="margin-bottom:6px;">
+                    <span style="color:var(--hbs-text-soft);">Inizio</span>
+                    <span>{{ sub.start_date|date:"d/m/Y" }}</span>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span style="color:var(--hbs-text-soft);">Scadenza</span>
+                    <span style="font-weight:500; {% if sub.status == 'Scaduto' %}color:var(--hbs-danger-fg);{% endif %}">
+                        {{ sub.end_date|date:"d/m/Y"|default:"—" }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="hbs-card">
+    <div class="hbs-empty">
+        <i class="ti ti-calendar-off"></i>
+        <p>Non hai abbonamenti registrati al momento.<br>Rivolgiti alla segreteria per attivarne uno.</p>
+    </div>
+</div>
+{% endif %}
 {% endblock %}

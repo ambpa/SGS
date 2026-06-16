@@ -1,0 +1,21 @@
+1. Gestione permessi accesso ai file
+
+2.Pulsante e funzionalità Modifica abbonamento dalla schermata Abbonamenti
+3.Pulsante e funzionalità Modifica pagamento dalla schermata Pagamenti
+
+4.Quando si crea un nuona abbonamento si deve poter registrare il pagamento
+
+5. Implementare controlli
+    - Un abbonamento si deve poter pagare una sola volta.
+    - controllare che l'inizio di un uovo abbonamento non sia a cavallo un con abbonamento della stessa disciplina già esistente
+    - Prevedere nella dashboard amministratore la sezione abbonamenti in
+    scadenza (un un valore in gionri configurabile ex. tra 30 gg). C'è già la card abbinamnenti e di deve sistema il
+    conteggio degli abbonamnenti attivi e il conteggio degli abbonamenti in scadenza.
+    - Oltre gli abbonamenti a ciascun utente deve essere associata una Carta di iscrizione
+        (l'abbiamo già prevista) con una data di scadenza. Preveder anche questo.
+    - Caricamento da parte dell user dei documenti (valutare se aggiungere funzionalità validato7
+        da parte della segreteria (che ha visionato il documento e da check positivo). In questo caso prevedere nella
+        dashbaord il pulsante certificati (o altri documenti) da validare.
+
+
+

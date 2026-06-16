@@ -6,7 +6,30 @@ from django.forms import modelformset_factory
 from django import forms
 from .models import Subscription
 from datetime import date
+from .models import Sector, Instructor
 
+from .models import Payment, Package
+
+# =====================================================================
+#  FASE 3-LISTINO — Aggiungi a members/forms.py
+#  Import in cima (accanto agli altri): from .models import Package
+# =====================================================================
+
+class PackageForm(forms.ModelForm):
+    class Meta:
+        model = Package
+        fields = ['name', 'sector', 'package_type', 'price', 'is_active']
+        widgets = {
+            'name': forms.TextInput(attrs={'placeholder': 'Es. Trimestrale Fitness'}),
+            'price': forms.NumberInput(attrs={'step': '0.01', 'min': '0'}),
+        }
+        labels = {
+            'name': 'Nome pacchetto',
+            'sector': 'Settore',
+            'package_type': 'Tipo',
+            'price': 'Prezzo (€)',
+            'is_active': 'Attivo',
+        }
 
 class MemberCreationForm(UserCreationForm):
     """
@@ -108,8 +131,70 @@ MemberDocumentFormSet = modelformset_factory(
 class SubscriptionForm(forms.ModelForm):
     class Meta:
         model = Subscription
-        fields = ['subscription_type', 'category', 'start_date',]
+        fields = ['subscription_type', 'sector', 'start_date',]
         widgets = {
             'start_date': forms.DateInput(attrs={'type': 'date'}),
         }
 
+
+
+
+
+class SectorForm(forms.ModelForm):
+    class Meta:
+        model = Sector
+        fields = ['name', 'is_active']
+        widgets = {
+            'name': forms.TextInput(attrs={'placeholder': 'Es. FITNESS, SALA PESI, KARATE'}),
+        }
+        labels = {
+            'name': 'Nome settore',
+            'is_active': 'Attivo',
+        }
+
+
+class InstructorForm(forms.ModelForm):
+    class Meta:
+        model = Instructor
+        fields = ['first_name', 'last_name', 'sectors', 'is_active']
+        widgets = {
+            'sectors': forms.CheckboxSelectMultiple(),
+        }
+        labels = {
+            'first_name': 'Nome',
+            'last_name': 'Cognome',
+            'sectors': 'Settori/discipline',
+            'is_active': 'Attivo',
+        }
+
+class PaymentForm(forms.ModelForm):
+    class Meta:
+        model = Payment
+        fields = [
+            'payment_type', 'subscription', 'payment_date', 'due_date',
+            'amount', 'enrollment_amount', 'discount',
+            'payment_mode', 'fee_code', 'is_paid',
+        ]
+        widgets = {
+            'payment_date': forms.DateInput(attrs={'type': 'date'}),
+            'due_date': forms.DateInput(attrs={'type': 'date'}),
+        }
+        labels = {
+            'payment_type': 'Tipo',
+            'subscription': 'Abbonamento collegato',
+            'payment_date': 'Data pagamento',
+            'due_date': 'Scadenza',
+            'amount': 'Quota €',
+            'enrollment_amount': 'Iscrizione €',
+            'discount': 'Sconto €',
+            'payment_mode': 'Modalità',
+            'fee_code': 'Tariffa',
+            'is_paid': 'Pagato',
+        }
+
+    def __init__(self, *args, member=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['subscription'].required = False
+        self.fields['enrollment_amount'].required = False
+        if member is not None:
+            self.fields['subscription'].queryset = member.subscriptions.all()

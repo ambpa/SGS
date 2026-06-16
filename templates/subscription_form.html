@@ -1,16 +1,33 @@
-<!-- templates/subscription_form.html -->
 {% extends "base.html" %}
-{% block title %}Aggiungi Abbonamento | SuperGym{% endblock %}
+{% load static %}
+{% load form_tags %}
+
+{% block title %}Nuovo abbonamento · HBS{% endblock %}
 
 {% block content %}
-<div class="container mt-5">
-    <h1>Aggiungi abbonamento per {{ member.first_name }} {{ member.last_name }}</h1>
+<div class="hbs-pagehead">
+    <div>
+        <h1>Nuovo abbonamento</h1>
+        <p class="hbs-pagehead__sub">{{ member.get_full_name|default:member.username }}</p>
+    </div>
+    <div class="hbs-pagehead__actions">
+        <a href="{% url 'members:subscription_list' member.id %}" class="hbs-btn hbs-btn--ghost"><i class="ti ti-arrow-left"></i> Indietro</a>
+    </div>
+</div>
 
-    <form method="post">
+<div class="hbs-card" style="max-width:560px;">
+    <div class="hbs-card__title"><i class="ti ti-calendar-plus"></i> Dati abbonamento</div>
+    <form method="post" class="hbs-form">
         {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit" class="btn btn-success">Salva</button>
-        <a href="{% url 'members:subscription_list' member.id %}" class="btn btn-secondary">Annulla</a>
+        {% for field in form %}
+            <div class="hbs-field">
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field|add_class:"form-control" }}
+                {% if field.errors %}<ul class="errorlist">{% for e in field.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+            </div>
+        {% endfor %}
+        <div class="hbs-alert hbs-alert--info"><i class="ti ti-info-circle"></i><span>La data di fine viene calcolata in automatico dal tipo di abbonamento.</span></div>
+        <button type="submit" class="hbs-btn hbs-btn--primary"><i class="ti ti-device-floppy"></i> Salva</button>
     </form>
 </div>
 {% endblock %}
