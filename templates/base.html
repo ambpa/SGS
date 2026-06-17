@@ -37,13 +37,17 @@
 
             {% if user.is_staff or user.is_superuser %}
                 <div class="hbs-nav__section">Gestione</div>
-                <a href="{% url 'dashboard' %}"
-                   class="hbs-nav__link {% if active_nav == 'members' %}is-active{% endif %}">
-                    <i class="ti ti-users"></i> Soci
-                </a>
+<!--                <a href="{% url 'dashboard' %}"-->
+<!--                   class="hbs-nav__link {% if active_nav == 'members' %}is-active{% endif %}">-->
+<!--                    <i class="ti ti-users"></i> Soci-->
+<!--                </a>-->
                 <a href="{% url 'members:subscription_status' %}"
                    class="hbs-nav__link {% if active_nav == 'subscriptions' %}is-active{% endif %}">
                     <i class="ti ti-calendar-event"></i> Abbonamenti
+                </a>
+                    <a href="{% url 'members:payment_all' %}"
+                        class="hbs-nav__link {% if active_nav == 'payments' %}is-active{% endif %}">
+                        <i class="ti ti-cash"></i> Pagamenti
                 </a>
                 <a href="{% url 'members:medical_certificate_status' %}"
                    class="hbs-nav__link {% if active_nav == 'certificates' %}is-active{% endif %}">

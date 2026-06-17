@@ -145,18 +145,22 @@
     <!-- COLONNA DESTRA -->
     <div class="col-lg-4">
         <div class="hbs-card" style="margin-bottom:14px;">
-            <div class="hbs-card__title"><i class="ti ti-refresh"></i> Situazione abbonamenti</div>
-            <div class="d-flex align-items-baseline" style="gap:8px; margin-bottom:12px;">
-                <span style="font-size:30px; font-weight:600; color:var(--hbs-green-700);">{{ active_subscriptions }}</span>
-                <span style="font-size:13px; color:var(--hbs-text-soft);">attivi</span>
-            </div>
-            <div class="d-flex align-items-baseline" style="gap:8px;">
-                <span style="font-size:30px; font-weight:600; color:var(--hbs-danger-fg);">{{ expired_subscriptions }}</span>
-                <span style="font-size:13px; color:var(--hbs-text-soft);">scaduti</span>
-            </div>
-            <div style="margin-top:14px; padding-top:13px; border-top:1px solid var(--hbs-border); font-size:13px; color:var(--hbs-text-soft);">
-                Totale abbonamenti registrati: <strong style="color:var(--hbs-text);">{{ total_subscriptions }}</strong>
-            </div>
+               <div class="hbs-card__title"><i class="ti ti-refresh"></i> Abbonamenti</div>
+               <div class="d-flex align-items-baseline" style="gap:8px; margin-bottom:10px;">
+                   <span style="font-size:30px; font-weight:600; color:var(--hbs-green-700);">{{ active_subscriptions }}</span>
+                   <span style="font-size:13px; color:var(--hbs-text-soft);">attivi</span>
+               </div>
+               <div class="d-flex align-items-baseline" style="gap:8px; margin-bottom:10px;">
+                   <span style="font-size:30px; font-weight:600; color:var(--hbs-warning-fg);">{{ expiring_subscriptions }}</span>
+                   <span style="font-size:13px; color:var(--hbs-text-soft);">in scadenza (entro {{ scadenza_giorni }} gg)</span>
+               </div>
+               <div class="d-flex align-items-baseline" style="gap:8px;">
+                   <span style="font-size:30px; font-weight:600; color:var(--hbs-danger-fg);">{{ expired_subscriptions }}</span>
+                   <span style="font-size:13px; color:var(--hbs-text-soft);">scaduti</span>
+               </div>
+               <div style="margin-top:14px; padding-top:13px; border-top:1px solid var(--hbs-border); font-size:13px; color:var(--hbs-text-soft);">
+                   Totale abbonamenti: <strong style="color:var(--hbs-text);">{{ total_subscriptions }}</strong>
+               </div>
         </div>
 
         <div class="hbs-card">

@@ -1,6 +1,6 @@
 # members/views.py
 import json
-from datetime import date
+from datetime import date,timedelta
 from functools import wraps
 
 from django.shortcuts import render, get_object_or_404, redirect
@@ -100,34 +100,27 @@ def dashboard(request):
                     suspended_certificates += 1
 
         from collections import defaultdict
-        member_categories = defaultdict(dict)
-        active_subscriptions = 0
-        expired_subscriptions = 0
 
         start_date = request.GET.get('start_date')
         end_date = request.GET.get('end_date')
 
-        for sub in Subscription.objects.select_related('member').all():
-            member_id = sub.member.id
-            category = sub.sector_id  # FK al settore
-            current = member_categories[member_id].get(category)
-            # tieni l'abbonamento con end_date maggiore (None considerato minimo)
-            if current is None:
-                member_categories[member_id][category] = sub
-            else:
-                cur_end = current.end_date or date.min
-                new_end = sub.end_date or date.min
-                if new_end > cur_end:
-                    member_categories[member_id][category] = sub
+        SCADENZA_GIORNI = 30  # soglia "in scadenza" (configurabile in futuro)
+        limite = today + timedelta(days=SCADENZA_GIORNI)
 
-        for member_subs in member_categories.values():
-            for sub in member_subs.values():
-                if sub.start_date and sub.start_date > today:
-                    continue  # non ancora attivo
-                elif sub.end_date and sub.end_date < today:
-                    expired_subscriptions += 1
-                else:
-                    active_subscriptions += 1
+        active_subscriptions = 0
+        expired_subscriptions = 0
+        expiring_subscriptions = 0
+
+        for sub in Subscription.objects.all():
+            if sub.start_date and sub.start_date > today:
+                continue  # non ancora attivo
+            if sub.end_date and sub.end_date < today:
+                expired_subscriptions += 1
+            else:
+                active_subscriptions += 1
+                # in scadenza: attivo e fine entro la soglia
+                if sub.end_date and today <= sub.end_date <= limite:
+                    expiring_subscriptions += 1
 
         total_subscriptions = Subscription.objects.count()
 
@@ -175,6 +168,9 @@ def dashboard(request):
             'total_subscriptions': total_subscriptions,
             'active_subscriptions': active_subscriptions,
             'expired_subscriptions': expired_subscriptions,
+            'expiring_subscriptions': expiring_subscriptions,
+            'total_subscriptions': total_subscriptions,
+            'scadenza_giorni': SCADENZA_GIORNI,
             'labels': json.dumps(labels),
             'data': json.dumps(data),
             'sub_labels': sub_labels,

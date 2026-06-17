@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Tutti i pagamenti · HBS{% endblock %}
+
+{% block content %}
+<div class="hbs-pagehead">
+    <div>
+        <h1>Pagamenti</h1>
+        <p class="hbs-pagehead__sub">Tutti i pagamenti registrati</p>
+    </div>
+    <div class="hbs-pagehead__actions">
+        <a href="{% url 'members:payment_due' %}" class="hbs-btn hbs-btn--ghost"><i class="ti ti-calendar-exclamation"></i> Scadenze</a>
+    </div>
+</div>
+
+<div class="hbs-metrics" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));">
+    <div class="hbs-metric">
+        <div class="hbs-metric__icon"><i class="ti ti-cash"></i></div>
+        <div class="hbs-metric__label">Incassato (filtro)</div>
+        <div class="hbs-metric__value hbs-metric__value--ok">€ {{ tot_paid|floatformat:2 }}</div>
+    </div>
+    <div class="hbs-metric">
+        <div class="hbs-metric__icon"><i class="ti ti-clock-exclamation"></i></div>
+        <div class="hbs-metric__label">Da incassare (filtro)</div>
+        <div class="hbs-metric__value hbs-metric__value--warn">€ {{ tot_unpaid|floatformat:2 }}</div>
+    </div>
+</div>
+
+<div class="hbs-card">
+    <form method="get" class="hbs-toolbar">
+        <div class="hbs-search">
+            <i class="ti ti-search"></i>
+            <input type="text" name="q" value="{{ q }}" placeholder="Cerca socio o tessera…">
+        </div>
+        <select name="status" class="form-select" style="max-width:220px;" onchange="this.form.submit()">
+            <option value="">Tutti gli stati</option>
+            <option value="paid"    {% if status == 'paid' %}selected{% endif %}>Pagati</option>
+            <option value="unpaid"  {% if status == 'unpaid' %}selected{% endif %}>Da pagare</option>
+            <option value="overdue" {% if status == 'overdue' %}selected{% endif %}>Insoluti (scaduti)</option>
+        </select>
+        <button type="submit" class="hbs-btn hbs-btn--ghost">Filtra</button>
+    </form>
+
+    {% if payments %}
+    <div style="overflow-x:auto;">
+        <table class="hbs-table">
+            <thead><tr><th>Socio</th><th>Tipo</th><th>Pagamento</th><th>Scadenza</th><th style="text-align:right;">Importo</th><th>Stato</th><th></th></tr></thead>
+            <tbody>
+                {% for p in payments %}
+                <tr>
+                    <td>
+                        <div class="d-flex align-items-center" style="gap:11px;">
+                            <span class="hbs-avatar">{{ p.member.first_name|first|upper }}{{ p.member.last_name|first|upper }}</span>
+                            <div class="hbs-table__name">{{ p.member.get_full_name|default:p.member.username }}</div>
+                        </div>
+                    </td>
+                    <td>{{ p.get_payment_type_display }}</td>
+                    <td>{{ p.payment_date|date:"d/m/Y"|default:"—" }}</td>
+                    <td {% if p.is_overdue %}style="color:var(--hbs-danger-fg); font-weight:500;"{% endif %}>{{ p.due_date|date:"d/m/Y"|default:"—" }}</td>
+                    <td style="text-align:right;">€ {{ p.net_amount|floatformat:2 }}</td>
+                    <td>
+                        {% if p.is_paid %}<span class="hbs-badge hbs-badge--ok">Pagato</span>
+                        {% elif p.is_overdue %}<span class="hbs-badge hbs-badge--danger">Insoluto</span>
+                        {% else %}<span class="hbs-badge hbs-badge--warn">Da pagare</span>{% endif %}
+                    </td>
+                    <td style="text-align:right;">
+                        <a href="{% url 'members:payment_list' p.member.id %}" class="hbs-btn hbs-btn--ghost hbs-btn--sm" title="Vai al socio"><i class="ti ti-external-link"></i></a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="hbs-empty"><i class="ti ti-receipt-off"></i><p>Nessun pagamento trovato con questi filtri.</p></div>
+    {% endif %}
+</div>
+{% endblock %}

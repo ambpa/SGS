@@ -35,6 +35,9 @@ urlpatterns = [
     path('subscriptions/new/',
          views_subscriptions.add_subscription_with_payment_admin,
          name='add_subscription_with_payment_admin'),
+    path('subscription/<int:pk>/edit/',
+         views_subscriptions.subscription_edit,
+         name='subscription_edit'),
 
     # --- Configurazione ---
     path('config/', views_config.config_home, name='config_home'),
@@ -56,6 +59,8 @@ urlpatterns = [
     path('payment/<int:pk>/edit/', views_payments.payment_edit, name='payment_edit'),
     path('payment/<int:pk>/delete/', views_payments.payment_delete, name='payment_delete'),
     path('payment/<int:pk>/toggle/', views_payments.payment_toggle_paid, name='payment_toggle_paid'),
+    path('payments/', views_payments.payment_all, name='payment_all'),
+    path('payments-due/', views_payments.payment_due, name='payment_due'),
 
 # Listino pacchetti
     path('config/pacchetti/', views_config.package_list, name='package_list'),

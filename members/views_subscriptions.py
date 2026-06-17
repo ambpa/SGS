@@ -11,6 +11,8 @@ from .models import Member, Subscription, Payment
 from .forms import SubscriptionWithPaymentForm
 from .forms import SubscriptionWithPaymentAndMemberForm
 
+from .forms import SubscriptionForm
+
 def office_required(view_func):
     @wraps(view_func)
     @login_required
@@ -111,4 +113,30 @@ def add_subscription_with_payment_admin(request):
 
     return render(request, 'subscriptions/subscription_with_payment_admin_form.html', {
         'form': form,
+    })
+
+@office_required
+def subscription_edit(request, pk):
+    """
+    Modifica un abbonamento (pacchetto, data inizio).
+    La data fine viene ricalcolata dal save() del modello.
+    """
+    subscription = get_object_or_404(Subscription, pk=pk)
+    member = subscription.member
+
+    if request.method == 'POST':
+        form = SubscriptionForm(request.POST, instance=subscription)
+        if form.is_valid():
+            # forziamo il ricalcolo della data fine: azzero end_date così
+            # il save() del modello la ricalcola dal (nuovo) pacchetto.
+            sub = form.save(commit=False)
+            sub.end_date = None
+            sub.save()
+            messages.success(request, "Abbonamento aggiornato.")
+            return redirect('members:subscription_list', member_id=member.id)
+    else:
+        form = SubscriptionForm(instance=subscription)
+
+    return render(request, 'subscriptions/subscription_edit_form.html', {
+        'form': form, 'member': member, 'subscription': subscription,
     })

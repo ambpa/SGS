@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Scadenze · HBS{% endblock %}
+
+{% block content %}
+<div class="hbs-pagehead">
+    <div>
+        <h1>Scadenze e insoluti</h1>
+        <p class="hbs-pagehead__sub">Rate da incassare e abbonamenti in scadenza nei prossimi {{ giorni }} giorni</p>
+    </div>
+    <div class="hbs-pagehead__actions">
+        <a href="{% url 'members:payment_all' %}" class="hbs-btn hbs-btn--ghost"><i class="ti ti-list"></i> Tutti i pagamenti</a>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-6">
+        <div class="hbs-card" style="height:100%;">
+            <div class="hbs-card__title"><i class="ti ti-alert-circle"></i> Rate da incassare</div>
+            {% if insoluti %}
+            <table class="hbs-table">
+                <thead><tr><th>Socio</th><th>Scadenza</th><th style="text-align:right;">Importo</th></tr></thead>
+                <tbody>
+                    {% for p in insoluti %}
+                    <tr>
+                        <td><a href="{% url 'members:payment_list' p.member.id %}" style="color:var(--hbs-green-700); text-decoration:none;">{{ p.member.get_full_name|default:p.member.username }}</a></td>
+                        <td {% if p.is_overdue %}style="color:var(--hbs-danger-fg); font-weight:500;"{% endif %}>{{ p.due_date|date:"d/m/Y"|default:"—" }}</td>
+                        <td style="text-align:right;">€ {{ p.net_amount|floatformat:2 }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="hbs-empty" style="padding:28px;"><i class="ti ti-circle-check"></i><p>Nessuna rata da incassare.</p></div>
+            {% endif %}
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="hbs-card" style="height:100%;">
+            <div class="hbs-card__title"><i class="ti ti-calendar-exclamation"></i> Abbonamenti in scadenza</div>
+            {% if subs_in_scadenza %}
+            <table class="hbs-table">
+                <thead><tr><th>Socio</th><th>Pacchetto</th><th>Scade il</th></tr></thead>
+                <tbody>
+                    {% for s in subs_in_scadenza %}
+                    <tr>
+                        <td><a href="{% url 'members:subscription_list' s.member.id %}" style="color:var(--hbs-green-700); text-decoration:none;">{{ s.member.get_full_name|default:s.member.username }}</a></td>
+                        <td>{% if s.package %}{{ s.package.name }}{% else %}—{% endif %}</td>
+                        <td>{{ s.end_date|date:"d/m/Y" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="hbs-empty" style="padding:28px;"><i class="ti ti-circle-check"></i><p>Nessun abbonamento in scadenza.</p></div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
